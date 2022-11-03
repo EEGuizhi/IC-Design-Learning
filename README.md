@@ -1,10 +1,9 @@
 # IC Design Learning
-存放本人所做之 類比/數位IC設計相關的作業及練習成果。<br>
-( 尊重智慧財產權，此處僅存放題目與本人所做之成果，不會包含教材與課程提供解答 )<br>
+存放我做的類比/數位IC設計相關的作業及練習成果。<br>
 
 <br>
 
 ## 內容：
-  - 硬體描述語言設計 (HDL)
-  - 數位系統之快速雛型製作 (FPGA)
-  - 類比電路設計 (Analog Circuit)
+  - 硬體描述語言設計 Hardware Description Language Design (98)
+  - 數位系統之快速雛型製作 (FPGA) Fast Prototypes of Digital Systems (99)
+  - 類比電路設計 Analog Circuit Design
