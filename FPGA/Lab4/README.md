@@ -6,18 +6,19 @@
 
 ### 目的：
 - 了解Register、Wire的使用時機
-- 大致上來說，wire和reg都類似於C/C++的變數，<br>
-    但若此變數要放在always block內，該變數就須使用reg，在always block之外，則使用wire。<br>
-    使用wire時須搭配assign，reg則不必。input、output、inout預設值都是wire。<br>
+
+### 解說：
+-   大致上來說，wire和reg都類似於C/C++的變數，<br>
+    使用wire時須搭配assign，reg則不必。而input、output、inout預設值都是wire。<br><br>
+    若此變數要放在always block內，該變數就必須使用reg，在always block之外，則使用wire。<br>
     在Verilog中使用reg，並不表示合成後就是暫存器(register)。<br>
-    若在組合電路中使用reg，合成後仍只是wire，唯有在循序電路中使用reg，<br>
-    合成後才會以flip-flop形式表示成register。<br>
-    Ex: <br>
-        ```
-        always @(a or b)begin
+    若在組合電路中使用reg，合成後仍只是wire，<br>
+    唯有在循序電路中使用reg，合成後才會以flip-flop形式表示成register。<br>
+    Ex:
+    
+        always@(a or b) begin
             c = a & b;
         end
-        ```
 
 
 ### 作業：
