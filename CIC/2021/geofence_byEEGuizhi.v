@@ -26,15 +26,17 @@ module geofence (
     reg right;
 
     always @(*) begin
-        // 計算向量 (搭配組合邏輯部分)
+        // 計算向量
         vec1[0] = {1'b0, tar[0]} - {1'b0, rec[round][0]};
         vec1[1] = {1'b0, tar[1]} - {1'b0, rec[round][1]};
         vec2[0] = {1'b0, rec[count][0]} - {1'b0, rec[round][0]};
         vec2[1] = {1'b0, rec[count][1]} - {1'b0, rec[round][1]};
 
+        // 向量外積
         v_cross1 = vec1[0] * vec2[1]; // vec1 x vec2 第一部分
         v_cross2 = vec1[1] * vec2[0]; // vec1 x vec2 第二部分
 
+        // 確認外積方向
         if(v_cross1 > v_cross2) begin
             right = 1;
         end
@@ -70,7 +72,7 @@ module geofence (
                 state <= 1;
             end
         end
-        else if(state == 1) begin // 計算
+        else if(state == 1) begin // 計算 (搭配組合邏輯)
             // "round"表示現在是以rec[round]作為原點 總共會有6個round (0~5)
             if(round < 6) begin
                 if(round == count) begin // vec2的起始與終點相同
