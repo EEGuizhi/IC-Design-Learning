@@ -19,10 +19,10 @@ module geofence (
 
 
     // 組合邏輯 (即reg合成後會是wire)
-    reg signed [10:0] vec1 [0:1]; // 向量(10bits) + 正負(1bit)
-    reg signed [10:0] vec2 [0:1];
-    reg signed [20:0] v_cross1; // 當前rec往tar的向量 (相乘完最大會到2倍bits + 正負)
-    reg signed [20:0] v_cross2; // 當前rec往另一個rec的向量
+    reg signed [10:0] vec1 [0:1]; // 當前rec往tar的向量 (座標10bits + 正負1bit)
+    reg signed [10:0] vec2 [0:1]; // 當前rec往另一個rec的向量
+    reg signed [20:0] v_cross1; // 外積第一部分 (相乘完最大會到2倍bits + 正負)
+    reg signed [20:0] v_cross2; // 外積第二部分
     reg right;
 
     always @(*) begin
