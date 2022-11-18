@@ -1,4 +1,4 @@
-// EEGuizhi
+//EEGuizhi
 module SME(
     input clk,
     input reset,
@@ -10,7 +10,7 @@ module SME(
     output reg valid );
 
     // 自訂的變數
-    reg [1:0] state; // 電路執行狀態  "0":輸入  "1":比對可行  "2":比對失敗  "3":輸出
+    reg [1:0] state; // 電路執行狀態  "0":輸入  "1":計算  "2":輸出
     reg signed [7:0] str [0:31]; // 儲存String (一個字1byte 最多32字元)
     reg signed [7:0] pat [0:9]; // 儲存Pattern (最多8字元) (tm題目沒說清楚 總之^跟$疑似沒包含在8以內)
 
