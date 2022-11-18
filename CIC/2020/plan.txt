@@ -6,12 +6,26 @@ pattern: _ _ _ _ _ _ _ _
 
 match_index: 當前在str中跟pat比對的頭 
 
-
-- state = 1 計算:
+if: state = 0 (輸入):
+{
+    if: is string
+    {
+        str_ptr逐加 存入str[str_ptr]
+    }
+    else if: is pattern
+    {
+        pat_ptr逐加 存入pat[pat_ptr]
+    }
+    else: 準備進入下一state
+    {
+        str_ptr, pat_ptr歸零
+    }
+}
+else if: state = 1 (計算):
 
     if: 當前在str中的位置到尾巴的長度足夠塞下pat
     {
-        if: 目前在str中的字跟pat中的字一樣:
+        if: 目前在str中的字跟pat中的字一樣
         {
             str, pat皆往下一格比對
             flag 立起來
