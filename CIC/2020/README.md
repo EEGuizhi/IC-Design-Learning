@@ -1,6 +1,6 @@
 # 2021 IC Design Contest
 
-## <b>題目：</b> Geofence
+## <b>題目：</b> String Matching Engine
 
 <br>
 

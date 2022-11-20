@@ -15,6 +15,17 @@ module JAM (
     reg [1:0] state; //0:input  1:calculate  2:output  3:none
     reg [9:0] total_cost;
 
+    always @(*) begin
+        // Calculate
+        total_cost = cost_data[0][job[0]]
+                   + cost_data[1][job[1]]
+                   + cost_data[2][job[2]]
+                   + cost_data[3][job[3]]
+                   + cost_data[4][job[4]]
+                   + cost_data[5][job[5]]
+                   + cost_data[6][job[6]]
+                   + cost_data[7][job[7]];
+    end
 
     always @(posedge CLK) begin
         if(RST) begin //reset
@@ -299,17 +310,7 @@ module JAM (
         if(state == 0) begin //state：input data
             cost_data[W][J] <= Cost;
         end
-        else if(state == 1) begin //state：calculating
-            total_cost <= cost_data[0][job[0]]
-                        + cost_data[1][job[1]]
-                        + cost_data[2][job[2]]
-                        + cost_data[3][job[3]]
-                        + cost_data[4][job[4]]
-                        + cost_data[5][job[5]]
-                        + cost_data[6][job[6]]
-                        + cost_data[7][job[7]];
-        end
-        else begin //state：output
+        else if(state == 2) begin //state：output
             Valid <= 1;
         end
     end
