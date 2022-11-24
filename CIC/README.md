@@ -1,4 +1,4 @@
-# University/College IC Design Contest (CIC) 歷屆練習
+# University/College IC Design Contest (ICDC) 歷屆練習
 
 ## 簡介：
 - 皆由本人獨自完成歷屆練習題
