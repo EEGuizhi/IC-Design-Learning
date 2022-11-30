@@ -7,7 +7,7 @@ module top (
     input [7:0] Din,
     output [7:0] Dout,
     output reg o_valid
-);
+    );
 
     reg en;
     reg flag;
@@ -15,8 +15,8 @@ module top (
     reg [3:0] addr;
 
     wire [7:0] data;
-    assign data = i_valid ? Din : 'bz;  // data 在輸入時接到Din 其他時間接到高阻抗 (inout的常見寫法)
-    assign Dout = o_valid ? data : 0;  // 當o_valid為1時輸出Dout 其他時間都輸出0
+    assign data = i_valid ? Din : 'bz;  // data 在輸入時接到Din, 其他時間接到高阻抗 ( inout port 的寫法 )
+    assign Dout = o_valid ? data : 0;  // 當 o_valid = 1 時輸出Dout, 其他時間都輸出 0
 
     Memory mem(.clk(clk), .rst(reset), .r_w(~i_valid), .en(en), .addr(addr), .data(data));
 
@@ -34,7 +34,7 @@ module top (
                         addr <= addr + 1;
                         flag <= 1;
                     end
-                    else if(flag && ~busy) begin  // 輸入過 而且 不busy
+                    else if(flag && ~busy) begin  // "輸入過" 而且 "不busy"
                         state <= 1;
                     end
                 end
@@ -49,11 +49,10 @@ module top (
                         addr <= addr - 1;
                     end
                 end
-                default: state <= 0;
+                default: ;
             endcase
         end
     end
-
 
     always @(negedge clk) begin
         if(reset) begin
