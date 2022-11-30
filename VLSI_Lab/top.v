@@ -35,7 +35,6 @@ module top (
                         flag <= 1;
                     end
                     else if(flag && ~busy) begin  // 輸入過 而且 不busy
-                        addr <= addr - 1;
                         state <= 1;
                     end
                 end
@@ -44,6 +43,7 @@ module top (
                         state <= 0;
                         flag <= 0;
                         o_valid <= 0;
+                        en <= 0;
                     end
                     else begin
                         o_valid <= 1;
