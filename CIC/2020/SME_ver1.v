@@ -36,7 +36,9 @@ module SME(
         else begin
             need_start = 0;
         end
+    end
 
+    always @(*) begin
         if(pat[pat_len] == END_CH) begin
             need_end = 1;
         end
