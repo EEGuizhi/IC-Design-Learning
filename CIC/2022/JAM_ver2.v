@@ -23,34 +23,63 @@ module JAM (
 
     // Calculate the sum
     always @(*) begin
-        next_TotalCost[0] = cost_data[0][job[0]]
-                          + cost_data[1][job[1]]
-                          + cost_data[2][job[2]]
-                          + cost_data[3][job[3]];
+        if(state == INPUT) begin
+            next_TotalCost[0] = cost_data[0][job[0]]
+                              + cost_data[1][job[1]]
+                              + cost_data[2][job[2]]
+                              + cost_data[3][job[3]];
 
-        next_TotalCost[1] = cost_data[4][job[4]]
-                          + cost_data[5][job[5]]
-                          + cost_data[6][job[6]]
-                          + cost_data[7][job[7]];
+            next_TotalCost[1] = cost_data[4][job[4]]
+                              + cost_data[5][job[5]]
+                              + cost_data[6][job[6]]
+                              + cost_data[7][job[7]];
+        end
+        else begin
+            next_TotalCost[0] = cost_data[0][next_job[0]]
+                              + cost_data[1][next_job[1]]
+                              + cost_data[2][next_job[2]]
+                              + cost_data[3][next_job[3]];
+
+            next_TotalCost[1] = cost_data[4][next_job[4]]
+                              + cost_data[5][next_job[5]]
+                              + cost_data[6][next_job[6]]
+                              + cost_data[7][next_job[7]];
+        end
     end
 
-    always @(negedge CLK) begin
+    always @(posedge CLK) begin
         TotalCost <= next_TotalCost[0] + next_TotalCost[1];
     end
 
     // Next jobs assignment 字典序演算法(方法提供by題目)
     always @(*) begin
         if(job[6] < job[7]) begin // 7>6
+            next_job[0] = job[0];
+            next_job[1] = job[1];
+            next_job[2] = job[2];
+            next_job[3] = job[3];
+            next_job[4] = job[4];
+            next_job[5] = job[5];
             next_job[6] = job[7];
             next_job[7] = job[6];
         end
         else if(job[5] < job[6]) begin // 6>7 & 6>5
             if(job[7] > job[5]) begin // 6>7>5
+                next_job[0] = job[0];
+                next_job[1] = job[1];
+                next_job[2] = job[2];
+                next_job[3] = job[3];
+                next_job[4] = job[4];
                 next_job[5] = job[7];
                 next_job[6] = job[5];
                 next_job[7] = job[6];
             end
             else begin // 6>5>7
+                next_job[0] = job[0];
+                next_job[1] = job[1];
+                next_job[2] = job[2];
+                next_job[3] = job[3];
+                next_job[4] = job[4];
                 next_job[5] = job[6];
                 next_job[6] = job[7];
                 next_job[7] = job[5];
@@ -58,17 +87,29 @@ module JAM (
         end
         else if(job[4] < job[5]) begin // 5>4 & 5>6>7
             if(job[7] > job[4]) begin // 5>6>7>4
+                next_job[0] = job[0];
+                next_job[1] = job[1];
+                next_job[2] = job[2];
+                next_job[3] = job[3];
                 next_job[4] = job[7];
                 next_job[5] = job[4];
                 next_job[7] = job[5];
             end
             else if(job[6] > job[4]) begin // 5>6>4>7
+                next_job[0] = job[0];
+                next_job[1] = job[1];
+                next_job[2] = job[2];
+                next_job[3] = job[3];
                 next_job[4] = job[6];
                 next_job[5] = job[7];
                 next_job[6] = job[4];
                 next_job[7] = job[5];
             end
             else begin // 5>4>6>7
+                next_job[0] = job[0];
+                next_job[1] = job[1];
+                next_job[2] = job[2];
+                next_job[3] = job[3];
                 next_job[4] = job[5];
                 next_job[5] = job[7];
                 next_job[7] = job[4];
@@ -76,6 +117,9 @@ module JAM (
         end
         else if(job[3] < job[4]) begin // 4>3 & 4>5>6>7
             if(job[7] > job[3]) begin // 4>5>6>7>3
+                next_job[0] = job[0];
+                next_job[1] = job[1];
+                next_job[2] = job[2];
                 next_job[3] = job[7];
                 next_job[4] = job[3];
                 next_job[7] = job[4];
@@ -83,6 +127,9 @@ module JAM (
                 next_job[5] = job[6];
             end
             else if(job[6] > job[3]) begin // 4>5>6>3>7
+                next_job[0] = job[0];
+                next_job[1] = job[1];
+                next_job[2] = job[2];
                 next_job[3] = job[6];
                 next_job[4] = job[7];
                 next_job[5] = job[3];
@@ -90,6 +137,9 @@ module JAM (
                 next_job[7] = job[4];
             end
             else if(job[5] > job[3]) begin // 4>5>3>6>7
+                next_job[0] = job[0];
+                next_job[1] = job[1];
+                next_job[2] = job[2];
                 next_job[3] = job[5];
                 next_job[4] = job[7];
                 next_job[5] = job[6];
@@ -97,6 +147,9 @@ module JAM (
                 next_job[7] = job[4];
             end
             else begin // 4>3>5>6>7
+                next_job[0] = job[0];
+                next_job[1] = job[1];
+                next_job[2] = job[2];
                 next_job[3] = job[4];
                 next_job[4] = job[7];
                 next_job[5] = job[6];
@@ -106,6 +159,8 @@ module JAM (
         end
         else if(job[2] < job[3]) begin // 3>2 & 3>4>5>6>7
             if(job[7] > job[2]) begin
+                next_job[0] = job[0];
+                next_job[1] = job[1];
                 next_job[2] = job[7];
                 next_job[3] = job[2];
                 next_job[4] = job[6];
@@ -113,6 +168,8 @@ module JAM (
                 next_job[7] = job[3];
             end
             else if(job[6] > job[2]) begin
+                next_job[0] = job[0];
+                next_job[1] = job[1];
                 next_job[2] = job[6];
                 next_job[3] = job[7];
                 next_job[4] = job[2];
@@ -120,6 +177,8 @@ module JAM (
                 next_job[7] = job[3];
             end
             else if(job[5] > job[2]) begin
+                next_job[0] = job[0];
+                next_job[1] = job[1];
                 next_job[2] = job[5];
                 next_job[3] = job[7];
                 next_job[4] = job[6];
@@ -128,6 +187,8 @@ module JAM (
                 next_job[7] = job[3];
             end
             else if(job[4] > job[2]) begin
+                next_job[0] = job[0];
+                next_job[1] = job[1];
                 next_job[2] = job[4];
                 next_job[3] = job[7];
                 next_job[4] = job[6];
@@ -135,6 +196,8 @@ module JAM (
                 next_job[7] = job[3];
             end
             else begin
+                next_job[0] = job[0];
+                next_job[1] = job[1];
                 next_job[2] = job[3];
                 next_job[3] = job[7];
                 next_job[4] = job[6];
@@ -144,6 +207,7 @@ module JAM (
         end
         else if(job[1] < job[2]) begin // 2>1 & 2>3>4>5>6>7
             if(job[7] > job[1]) begin
+                next_job[0] = job[0];
                 next_job[1] = job[7];
                 next_job[2] = job[1];
                 next_job[3] = job[6];
@@ -153,6 +217,7 @@ module JAM (
                 next_job[7] = job[2];
             end
             else if(job[6] > job[1]) begin
+                next_job[0] = job[0];
                 next_job[1] = job[6];
                 next_job[2] = job[7];
                 next_job[3] = job[1];
@@ -162,6 +227,7 @@ module JAM (
                 next_job[7] = job[2];
             end
             else if(job[5] > job[1]) begin
+                next_job[0] = job[0];
                 next_job[1] = job[5];
                 next_job[2] = job[7];
                 next_job[3] = job[6];
@@ -171,6 +237,7 @@ module JAM (
                 next_job[7] = job[2];
             end
             else if(job[4] > job[1]) begin
+                next_job[0] = job[0];
                 next_job[1] = job[4];
                 next_job[2] = job[7];
                 next_job[3] = job[6];
@@ -180,6 +247,7 @@ module JAM (
                 next_job[7] = job[2];
             end
             else if(job[3] > job[1]) begin
+                next_job[0] = job[0];
                 next_job[1] = job[3];
                 next_job[2] = job[7];
                 next_job[3] = job[6];
@@ -189,6 +257,7 @@ module JAM (
                 next_job[7] = job[2];
             end
             else begin
+                next_job[0] = job[0];
                 next_job[1] = job[2];
                 next_job[2] = job[7];
                 next_job[3] = job[6];
@@ -279,8 +348,10 @@ module JAM (
     end
 
     always @(*) begin
-        if(job[0] == 7 && job[1] == 6 && job[2] == 5 && job[3] == 4 &&
-           job[4] == 3 && job[5] == 2 && job[6] == 1 && job[7] == 0)
+        if(job[0] == next_job[0] && job[1] == next_job[1] &&
+           job[2] == next_job[2] && job[3] == next_job[3] &&
+           job[4] == next_job[4] && job[5] == next_job[5] &&
+           job[6] == next_job[6] && job[7] == next_job[7])
             done = 1;
         else
             done = 0;
@@ -333,30 +404,30 @@ module JAM (
                     if(done) begin
                         state <= OUTPUT;  // next state
                     end
-                    else begin
-                        job[0] <= next_job[0];
-                        job[1] <= next_job[1];
-                        job[2] <= next_job[2];
-                        job[3] <= next_job[3];
-                        job[4] <= next_job[4];
-                        job[5] <= next_job[5];
-                        job[6] <= next_job[6];
-                        job[7] <= next_job[7];
-                    end
+                    job[0] <= next_job[0];
+                    job[1] <= next_job[1];
+                    job[2] <= next_job[2];
+                    job[3] <= next_job[3];
+                    job[4] <= next_job[4];
+                    job[5] <= next_job[5];
+                    job[6] <= next_job[6];
+                    job[7] <= next_job[7];
                 end
                 OUTPUT: begin
                     state <= OUTPUT;
-                end 
-                default: ;
+                end
             endcase
         end
     end
 
     always @(negedge CLK) begin
         case (state)
-            INPUT: cost_data[W][J] <= Cost;
-            OUTPUT: Valid <= 1;
-            default: ;
+            INPUT: begin
+                cost_data[W][J] <= Cost;
+            end
+            OUTPUT: begin
+                Valid <= 1;
+            end
         endcase
     end
 
