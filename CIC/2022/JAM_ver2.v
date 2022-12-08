@@ -1,4 +1,4 @@
-//EEGuizhi
+//EEGuizhi  (Behavior sim Correct) (Timeing violation)
 module JAM (
     input CLK,
     input RST,
@@ -93,6 +93,7 @@ module JAM (
                 next_job[3] = job[3];
                 next_job[4] = job[7];
                 next_job[5] = job[4];
+                next_job[6] = job[6];
                 next_job[7] = job[5];
             end
             else if(job[6] > job[4]) begin // 5>6>4>7
@@ -112,6 +113,7 @@ module JAM (
                 next_job[3] = job[3];
                 next_job[4] = job[5];
                 next_job[5] = job[7];
+                next_job[6] = job[6];
                 next_job[7] = job[4];
             end
         end
@@ -122,9 +124,9 @@ module JAM (
                 next_job[2] = job[2];
                 next_job[3] = job[7];
                 next_job[4] = job[3];
-                next_job[7] = job[4];
-                next_job[6] = job[5];
                 next_job[5] = job[6];
+                next_job[6] = job[5];
+                next_job[7] = job[4];
             end
             else if(job[6] > job[3]) begin // 4>5>6>3>7
                 next_job[0] = job[0];
@@ -164,6 +166,7 @@ module JAM (
                 next_job[2] = job[7];
                 next_job[3] = job[2];
                 next_job[4] = job[6];
+                next_job[5] = job[5];
                 next_job[6] = job[4];
                 next_job[7] = job[3];
             end
@@ -173,6 +176,7 @@ module JAM (
                 next_job[2] = job[6];
                 next_job[3] = job[7];
                 next_job[4] = job[2];
+                next_job[5] = job[5];
                 next_job[6] = job[4];
                 next_job[7] = job[3];
             end
@@ -192,6 +196,7 @@ module JAM (
                 next_job[2] = job[4];
                 next_job[3] = job[7];
                 next_job[4] = job[6];
+                next_job[5] = job[5];
                 next_job[6] = job[2];
                 next_job[7] = job[3];
             end
@@ -201,6 +206,7 @@ module JAM (
                 next_job[2] = job[3];
                 next_job[3] = job[7];
                 next_job[4] = job[6];
+                next_job[5] = job[5];
                 next_job[6] = job[4];
                 next_job[7] = job[2];
             end
@@ -273,6 +279,7 @@ module JAM (
                 next_job[1] = job[0];
                 next_job[2] = job[6];
                 next_job[3] = job[5];
+                next_job[4] = job[4];
                 next_job[5] = job[3];
                 next_job[6] = job[2];
                 next_job[7] = job[1];
@@ -282,6 +289,7 @@ module JAM (
                 next_job[1] = job[7];
                 next_job[2] = job[0];
                 next_job[3] = job[5];
+                next_job[4] = job[4];
                 next_job[5] = job[3];
                 next_job[6] = job[2];
                 next_job[7] = job[1];
@@ -291,6 +299,7 @@ module JAM (
                 next_job[1] = job[7];
                 next_job[2] = job[6];
                 next_job[3] = job[0];
+                next_job[4] = job[4];
                 next_job[5] = job[3];
                 next_job[6] = job[2];
                 next_job[7] = job[1];
@@ -310,6 +319,7 @@ module JAM (
                 next_job[1] = job[7];
                 next_job[2] = job[6];
                 next_job[3] = job[5];
+                next_job[4] = job[4];
                 next_job[5] = job[0];
                 next_job[6] = job[2];
                 next_job[7] = job[1];
@@ -362,7 +372,6 @@ module JAM (
             W <= 0;
             J <= 0;
             state <= INPUT;
-            Valid <= 0;
             MinCost <= 1023;
 
             job[0] <= 0;  // initial jobs
@@ -423,6 +432,7 @@ module JAM (
     always @(negedge CLK) begin
         case (state)
             INPUT: begin
+                Valid <= 0;
                 cost_data[W][J] <= Cost;
             end
             OUTPUT: begin
