@@ -13,43 +13,22 @@ module JAM (
     reg [6:0] cost_data [0:7][0:7];  // Workers對應Jobs的工作成本表格
     reg [2:0] job [0:7];  // 第n個Worker的Job = job[n]
     reg [2:0] next_job [0:7];
-    reg [9:0] TotalCost;
-    reg [8:0] next_TotalCost [0:1];
-    reg done;
+    
+    wire [9:0] TotalCost;
+    
+    assign TotalCost    = cost_data[0][job[0]]
+                        + cost_data[1][job[1]]
+                        + cost_data[2][job[2]]
+                        + cost_data[3][job[3]]
+                        + cost_data[4][job[4]]
+                        + cost_data[5][job[5]]
+                        + cost_data[6][job[6]]
+                        + cost_data[7][job[7]];
 
     parameter INPUT = 0;
     parameter CALC = 1;
     parameter OUTPUT = 2;
 
-    // Calculate the sum
-    always @(*) begin
-        if(state == INPUT) begin
-            next_TotalCost[0] = cost_data[0][job[0]]
-                              + cost_data[1][job[1]]
-                              + cost_data[2][job[2]]
-                              + cost_data[3][job[3]];
-
-            next_TotalCost[1] = cost_data[4][job[4]]
-                              + cost_data[5][job[5]]
-                              + cost_data[6][job[6]]
-                              + cost_data[7][job[7]];
-        end
-        else begin
-            next_TotalCost[0] = cost_data[0][next_job[0]]
-                              + cost_data[1][next_job[1]]
-                              + cost_data[2][next_job[2]]
-                              + cost_data[3][next_job[3]];
-
-            next_TotalCost[1] = cost_data[4][next_job[4]]
-                              + cost_data[5][next_job[5]]
-                              + cost_data[6][next_job[6]]
-                              + cost_data[7][next_job[7]];
-        end
-    end
-
-    always @(posedge CLK) begin
-        TotalCost <= next_TotalCost[0] + next_TotalCost[1];
-    end
 
     // Next jobs assignment 字典序演算法(方法提供by題目)
     always @(*) begin
@@ -357,15 +336,18 @@ module JAM (
         end
     end
 
-    always @(*) begin
-        if(job[0] == next_job[0] && job[1] == next_job[1] &&
-           job[2] == next_job[2] && job[3] == next_job[3] &&
-           job[4] == next_job[4] && job[5] == next_job[5] &&
-           job[6] == next_job[6] && job[7] == next_job[7])
-            done = 1;
-        else
-            done = 0;
-    end
+    wire done;
+
+    // always @(*) begin
+    //     if(job[0] == next_job[0] && job[1] == next_job[1] &&
+    //        job[2] == next_job[2] && job[3] == next_job[3] &&
+    //        job[4] == next_job[4] && job[5] == next_job[5] &&
+    //        job[6] == next_job[6] && job[7] == next_job[7])
+    //         done = 1;
+    //     else
+    //         done = 0;
+    // end
+    assign done = ({job[0], job[1], job[2], job[3], job[4], job[5], job[6], job[7]} == 24'o76543210) ? 1 : 0;
 
     always @(posedge CLK) begin
         if(RST) begin  // reset
@@ -386,6 +368,7 @@ module JAM (
         else begin
             case (state)
                 INPUT: begin
+                    cost_data[W][J] <= Cost;
                     if(W == 7 && J == 7) begin
                         J <= 0;
                         W <= 0;
@@ -433,7 +416,6 @@ module JAM (
         case (state)
             INPUT: begin
                 Valid <= 0;
-                cost_data[W][J] <= Cost;
             end
             OUTPUT: begin
                 Valid <= 1;
