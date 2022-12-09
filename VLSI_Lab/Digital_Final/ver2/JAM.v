@@ -1,4 +1,3 @@
-//EEGuizhi  (Behavior sim Correct) (Syn sim Correct)
 module JAM (
     input CLK,
     input RST,
@@ -9,7 +8,11 @@ module JAM (
     output reg [9:0] MinCost,
     output reg Valid );
 
-    reg [1:0] state;  // 0:input  1:calc  2:output  3:none
+    parameter INPUT = 0;
+    parameter CALC = 1;
+    parameter OUTPUT = 2;
+    reg [1:0] state;
+
     reg [6:0] cost_data [0:7][0:7];  // Workers對應Jobs的工作成本表格
     reg [2:0] job [0:7];  // 第n個Worker的Job = job[n]
     reg [2:0] next_job [0:7];
@@ -25,12 +28,8 @@ module JAM (
                         + cost_data[6][job[6]]
                         + cost_data[7][job[7]];
 
-    parameter INPUT = 0;
-    parameter CALC = 1;
-    parameter OUTPUT = 2;
 
-
-    // Next jobs assignment 字典序演算法(方法提供by題目)
+    // jobs assignment 字典序演算法(方法提供by題目)
     always @(*) begin
         if(job[6] < job[7]) begin // 7>6
             next_job[0] = job[0];
@@ -338,15 +337,6 @@ module JAM (
 
     wire done;
 
-    // always @(*) begin
-    //     if(job[0] == next_job[0] && job[1] == next_job[1] &&
-    //        job[2] == next_job[2] && job[3] == next_job[3] &&
-    //        job[4] == next_job[4] && job[5] == next_job[5] &&
-    //        job[6] == next_job[6] && job[7] == next_job[7])
-    //         done = 1;
-    //     else
-    //         done = 0;
-    // end
     assign done = ({job[0], job[1], job[2], job[3], job[4], job[5], job[6], job[7]} == 24'o76543210) ? 1 : 0;
 
     always @(posedge CLK) begin

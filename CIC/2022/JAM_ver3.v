@@ -1,4 +1,4 @@
-//EEGuizhi  (Behavior sim Correct)
+//EEGuizhi  (Behavior sim Correct) (Timeing Violation)
 module JAM (
     input CLK,
     input RST,
@@ -9,23 +9,19 @@ module JAM (
     output reg [9:0] MinCost,
     output reg Valid );
 
-
     parameter INPUT = 0;
     parameter CALC = 1;
     parameter SWAP = 2;
     parameter OUTPUT = 3;
-
-    reg [1:0] state;  // 0:input  1:calc  2:output  3:none
-    reg [6:0] cost_data [0:7][0:7];  // Workers對應Jobs的工作成本表格
-    reg [9:0] TotalCost;
-    reg [8:0] next_TotalCost [0:1];
+    reg [1:0] state;
 
     parameter FIND_SWAP_POINT = 0;
     parameter FIND_SWAP_VALUE = 1;
     parameter SWITCHING = 2;
     parameter FINISH = 3;
-
     reg [1:0] swap_state;
+
+    reg [6:0] cost_data [0:7][0:7];  // Workers對應Jobs的工作成本表格
     reg [2:0] swap_ptr;  // 交換點 pointer
     reg [2:0] ptr_saver;  // 儲存需要用的位置
     reg [2:0] ptr;
@@ -33,23 +29,17 @@ module JAM (
     reg [2:0] next_job [0:7];
     reg Done;
 
+    wire [9:0] TotalCost;
 
     // Calculate the sum
-    always @(*) begin
-        next_TotalCost[0]   = cost_data[0][job[0]]
-                            + cost_data[1][job[1]]
-                            + cost_data[2][job[2]]
-                            + cost_data[3][job[3]];
-
-        next_TotalCost[1]   = cost_data[4][job[4]]
-                            + cost_data[5][job[5]]
-                            + cost_data[6][job[6]]
-                            + cost_data[7][job[7]];
-    end
-
-    // always @(posedge CLK) begin
-    //     TotalCost <= next_TotalCost[0] + next_TotalCost[1];
-    // end
+    assign TotalCost    = cost_data[0][job[0]]
+                        + cost_data[1][job[1]]
+                        + cost_data[2][job[2]]
+                        + cost_data[3][job[3]]
+                        + cost_data[4][job[4]]
+                        + cost_data[5][job[5]]
+                        + cost_data[6][job[6]]
+                        + cost_data[7][job[7]];
 
 
     // Jobs assignment 字典序演算法(方法提供by題目)
@@ -78,9 +68,6 @@ module JAM (
                     end
                     else begin
                         ptr <= ptr - 1;
-                        if(job[ptr] > job[ptr_saver]) begin  // find max value
-                            ptr_saver <= ptr;
-                        end
                         if(ptr == 1) begin
                             Done <= 1;
                             swap_state <= FINISH;
@@ -110,7 +97,6 @@ module JAM (
                     end
                     else begin
                         swap_state <= FINISH;
-                        TotalCost <= next_TotalCost[0] + next_TotalCost[1];
                     end
                 end
                 FINISH: begin
@@ -147,7 +133,7 @@ module JAM (
                     end
                     else begin
                         J <= J + 1;
-                    end   
+                    end
                 end
                 CALC: begin
                     // MinCost, MatchCount
@@ -178,6 +164,7 @@ module JAM (
             endcase
         end
     end
+
 
     always @(negedge CLK) begin
         case (state)
