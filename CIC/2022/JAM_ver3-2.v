@@ -1,15 +1,15 @@
-//EEGuizhi  (Behavior sim Correct) (此ver3花費較多reg 約280000 cycles)
+//EEGuizhi  (Behavior sim Correct) (介於ver3與ver4間的設計 約360000 cycles)
 module JAM (
     input CLK,
     input RST,
-    output reg [2:0] W,
-    output reg [2:0] J,
+    output [2:0] W,
+    output [2:0] J,
     input [6:0] Cost,
     output reg [3:0] MatchCount,
     output reg [9:0] MinCost,
     output reg Valid );
 
-    parameter INPUT = 0;
+    parameter INIT = 0;
     parameter CALC = 1;
     parameter SWAP = 2;
     parameter OUTPUT = 3;
@@ -21,21 +21,25 @@ module JAM (
     parameter FINISH = 3;
     reg [1:0] swap_state;
 
-    reg [6:0] cost_data [0:7][0:7];  // Workers對應Jobs的工作成本表格
+    reg [6:0] cost_data [0:7];  // 暫存Workers對應Jobs的工作成本
     reg [2:0] swap_ptr;  // 交換點 pointer
     reg [2:0] ptr_saver;  // 儲存需要用的位置
     reg [2:0] ptr;
     reg [2:0] job [0:7];  // 第n個Worker的Job = job[n]
-    reg [2:0] next_job [0:7];
     reg Done;
 
+    reg [2:0] sum_ptr;
+    reg sum_flag;
     wire [9:0] TotalCost;
 
     // Calculate the sum
-    assign TotalCost    = ((cost_data[0][job[0]] + cost_data[1][job[1]])
-                        + (cost_data[2][job[2]] + cost_data[3][job[3]]))
-                        + ((cost_data[4][job[4]] + cost_data[5][job[5]])
-                        + (cost_data[6][job[6]] + cost_data[7][job[7]]));
+    assign TotalCost    = ((cost_data[0] + cost_data[1])
+                        + (cost_data[2] + cost_data[3]))
+                        + ((cost_data[4] + cost_data[5])
+                        + (cost_data[6] + cost_data[7]));
+
+    assign W = sum_ptr;
+    assign J = job[sum_ptr];
 
 
     // Jobs assignment 字典序演算法(方法提供by題目)
@@ -91,7 +95,7 @@ module JAM (
                         job[swap_ptr + 8 - ptr] <= job[ptr];
                         ptr <= ptr - 1;
                     end
-                    else begin
+                    else if(sum_ptr == 0) begin
                         swap_state <= FINISH;
                     end
                 end
@@ -108,44 +112,63 @@ module JAM (
     end
 
 
+    // Summing
+    always @(posedge CLK) begin
+        if(RST) begin
+            sum_ptr <= 0;
+        end
+        else begin
+            case (swap_state)
+                FIND_SWAP_POINT: begin
+                    sum_flag <= 0;
+                end
+                FIND_SWAP_VALUE: begin
+                    sum_ptr <= swap_ptr;
+                end
+                SWITCHING: begin
+                    if(sum_ptr != 0 || sum_flag == 0) begin
+                        cost_data[sum_ptr] <= Cost;
+                        sum_flag <= 1;
+                        sum_ptr <= sum_ptr + 1;
+                    end
+                end
+                FINISH: begin
+                    if(state == INIT) begin
+                        cost_data[sum_ptr] <= Cost;
+                        sum_ptr <= sum_ptr + 1;
+                    end
+                end
+            endcase
+        end
+    end
+
+
     always @(posedge CLK) begin
         if(RST) begin  // reset
-            W <= 0;
-            J <= 0;
-            state <= INPUT;
             MinCost <= 1023;
+            state <= INIT;
         end
         else begin
             case (state)
-                INPUT: begin
-                    if(W == 7 && J == 7) begin
-                        J <= 0;
-                        W <= 0;
+                INIT: begin  // read initial costs
+                    if(W == 7) begin
                         state <= CALC;  // next state
-                    end
-                    else if(J == 7) begin
-                        W <= W + 1;
-                        J <= 0;
-                    end
-                    else begin
-                        J <= J + 1;
                     end
                 end
                 CALC: begin
                     // MinCost, MatchCount
-                    if(TotalCost < MinCost) begin  // smaller
-                        MinCost <= TotalCost;
-                        MatchCount <= 1;
-                    end
-                    else if(TotalCost == MinCost) begin  // equal
-                        MatchCount <= MatchCount + 1;
-                    end
-
                     if(Done) begin
                         state <= OUTPUT;  // next state
                     end
                     else begin
-                        state <= SWAP;  // switch the jobs
+                        if(TotalCost < MinCost) begin  // smaller
+                            MinCost <= TotalCost;
+                            MatchCount <= 1;
+                        end
+                        else if(TotalCost == MinCost) begin  // equal
+                            MatchCount <= MatchCount + 1;
+                        end
+                        state <= SWAP;  // switch jobs
                     end
                 end
                 SWAP: begin
@@ -163,15 +186,12 @@ module JAM (
 
 
     always @(negedge CLK) begin
-        case (state)
-            INPUT: begin
-                Valid <= 0;
-                cost_data[W][J] <= Cost;
-            end
-            OUTPUT: begin
-                Valid <= 1;
-            end
-        endcase
+        if(state == OUTPUT) begin
+            Valid <= 1;
+        end
+        else begin
+            Valid <= 0;
+        end
     end
 
 endmodule

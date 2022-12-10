@@ -1,4 +1,4 @@
-//EEGuizhi  (Behavior sim Correct)
+//EEGuizhi  (Behavior sim Correct) (此ver4花費非常少的reg 約570000 cycles)
 module JAM (
     input CLK,
     input RST,
@@ -26,7 +26,7 @@ module JAM (
     reg [2:0] ptr_saver;  // 暫存需要用的位置
     reg [2:0] ptr;
     reg [2:0] sum_ptr;  // 需要相加的位置
-    reg sum_flag;
+    reg sum_flag;  // 紀錄sum_ptr是否走過0~7
     reg Done;
 
     reg [2:0] job [0:7];

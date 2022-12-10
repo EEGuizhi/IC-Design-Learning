@@ -1,4 +1,4 @@
-//EEGuizhi  (Behavior sim Correct) (Syn sim Correct)
+//EEGuizhi  (Behavior sim Correct) (Syn sim Correct) (面積極大 約250000, 時間極短 約40000 cycles)
 module JAM (
     input CLK,
     input RST,
@@ -16,14 +16,10 @@ module JAM (
     
     wire [9:0] TotalCost;
     
-    assign TotalCost    = cost_data[0][job[0]]
-                        + cost_data[1][job[1]]
-                        + cost_data[2][job[2]]
-                        + cost_data[3][job[3]]
-                        + cost_data[4][job[4]]
-                        + cost_data[5][job[5]]
-                        + cost_data[6][job[6]]
-                        + cost_data[7][job[7]];
+    assign TotalCost    = ((cost_data[0][job[0]] + cost_data[1][job[1]])
+                        + (cost_data[2][job[2]] + cost_data[3][job[3]]))
+                        + ((cost_data[4][job[4]] + cost_data[5][job[5]])
+                        + (cost_data[6][job[6]] + cost_data[7][job[7]]));
 
     parameter INPUT = 0;
     parameter CALC = 1;
