@@ -336,17 +336,8 @@ module JAM (
         end
     end
 
-    wire done;
 
-    // always @(*) begin
-    //     if(job[0] == next_job[0] && job[1] == next_job[1] &&
-    //        job[2] == next_job[2] && job[3] == next_job[3] &&
-    //        job[4] == next_job[4] && job[5] == next_job[5] &&
-    //        job[6] == next_job[6] && job[7] == next_job[7])
-    //         done = 1;
-    //     else
-    //         done = 0;
-    // end
+    wire done;
     assign done = ({job[0], job[1], job[2], job[3], job[4], job[5], job[6], job[7]} == 24'o76543210) ? 1 : 0;
 
     always @(posedge CLK) begin

@@ -91,7 +91,7 @@ module JAM (
                         job[swap_ptr + 8 - ptr] <= job[ptr];
                         ptr <= ptr - 1;
                     end
-                    else if(sum_ptr == 0) begin  // finish summing
+                    else if(sum_ptr == 0) begin  // wait summing finish
                         swap_state <= FINISH;
                     end
                 end
@@ -108,7 +108,7 @@ module JAM (
     end
 
 
-    // Summing
+    // Summing (為了節省cycle 在交換的同時就將可以相加的值加好)
     always @(posedge CLK) begin
         if(RST) begin
             TotalCost <= 0;
@@ -129,9 +129,7 @@ module JAM (
                 end
                 SWITCHING: begin
                     if(sum_ptr != 0 || sum_flag == 0) begin
-                        if(sum_ptr > 0) begin
-                            sum_flag <= 1;
-                        end
+                        sum_flag <= 1;
                         TotalCost <= TotalCost + Cost;
                         sum_ptr <= sum_ptr + 1;
                     end
@@ -147,6 +145,7 @@ module JAM (
     end
 
 
+    // State control
     always @(posedge CLK) begin
         if(RST) begin  // reset
             MinCost <= 1023;
@@ -188,15 +187,14 @@ module JAM (
     end
 
 
+    // Output
     always @(negedge CLK) begin
-        case (state)
-            READ: begin
-                Valid <= 0;
-            end
-            OUTPUT: begin
-                Valid <= 1;
-            end
-        endcase
+        if(state == OUTPUT) begin
+            Valid <= 1;
+        end
+        else begin
+            Valid <= 0;
+        end
     end
 
 endmodule
