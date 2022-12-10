@@ -1,4 +1,4 @@
-//EEGuizhi  (Behavior sim Correct) (介於ver3與ver4間的設計 約360000 cycles)
+//EEGuizhi  (Behavior sim Correct) (介於ver3與ver4間的設計 約320000 cycles)
 module JAM (
     input CLK,
     input RST,
@@ -112,15 +112,15 @@ module JAM (
     end
 
 
-    // Summing
+    // Summing (交換的同時可以加好部份數值)
     always @(posedge CLK) begin
         if(RST) begin
             sum_ptr <= 0;
+            sum_flag <= 0;
         end
         else begin
             case (swap_state)
                 FIND_SWAP_POINT: begin
-                    sum_flag <= 0;
                 end
                 FIND_SWAP_VALUE: begin
                     sum_ptr <= swap_ptr;
@@ -130,6 +130,9 @@ module JAM (
                         cost_data[sum_ptr] <= Cost;
                         sum_flag <= 1;
                         sum_ptr <= sum_ptr + 1;
+                    end
+                    else begin
+                        sum_flag <= 0;
                     end
                 end
                 FINISH: begin
@@ -143,8 +146,10 @@ module JAM (
     end
 
 
+    // Calc & Output
     always @(posedge CLK) begin
         if(RST) begin  // reset
+            Valid <= 0;
             MinCost <= 1023;
             state <= INIT;
         end
@@ -155,8 +160,7 @@ module JAM (
                         state <= CALC;  // next state
                     end
                 end
-                CALC: begin
-                    // MinCost, MatchCount
+                CALC: begin  // MinCost, MatchCount
                     if(Done) begin
                         state <= OUTPUT;  // next state
                     end
@@ -171,27 +175,18 @@ module JAM (
                         state <= SWAP;  // switch jobs
                     end
                 end
-                SWAP: begin
-                    // Jobs assignment
-                    if(swap_state == FINISH) begin
+                SWAP: begin  // Jobs assignment
+                    if(sum_ptr == 0 && sum_flag == 1 || swap_state == FINISH) begin
                         state <= CALC;
                     end
                 end
                 OUTPUT: begin
+                    Valid <= 1;
                     state <= OUTPUT;
                 end
             endcase
         end
     end
 
-
-    always @(negedge CLK) begin
-        if(state == OUTPUT) begin
-            Valid <= 1;
-        end
-        else begin
-            Valid <= 0;
-        end
-    end
 
 endmodule

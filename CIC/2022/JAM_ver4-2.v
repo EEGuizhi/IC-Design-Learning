@@ -1,4 +1,4 @@
-//EEGuizhi  (Behavior sim Correct) (此ver4花費非常少的reg 約470000 cycles)
+//EEGuizhi  (Behavior sim Correct) (此ver4花費非常少的reg 約570000 cycles)
 module JAM (
     input CLK,
     input RST,
@@ -23,6 +23,7 @@ module JAM (
     reg [1:0] swap_state;
 
     reg [2:0] swap_ptr;  // 交換點(swap point)的位置
+    wire [2:0] next_swap_ptr;
     reg [2:0] ptr_saver;  // 暫存需要用的位置
     reg [2:0] ptr;
     reg [2:0] sum_ptr;  // 需要相加的位置
@@ -34,7 +35,13 @@ module JAM (
 
     assign W = sum_ptr;
     assign J = job[sum_ptr];
-
+    assign next_swap_ptr =  (job[6] < job[7]) ? 6 :
+                            (job[5] < job[6]) ? 5 :
+                            (job[4] < job[5]) ? 4 :
+                            (job[3] < job[4]) ? 3 :
+                            (job[2] < job[3]) ? 2 :
+                            (job[1] < job[2]) ? 1 :
+                            (job[0] < job[1]) ? 0 : 7;
 
     // Jobs assignment 字典序演算法(方法提供by題目)
     always @(posedge CLK) begin
@@ -54,20 +61,6 @@ module JAM (
         else begin
             case (swap_state)
                 FIND_SWAP_POINT: begin  // 找尋 swap point
-                    if(job[ptr-1] < job[ptr]) begin  // found swap point
-                        swap_ptr <= ptr - 1;
-                        ptr_saver <= ptr;
-                        ptr <= ptr + 1;
-
-                        swap_state <= FIND_SWAP_VALUE;  // next state
-                    end
-                    else begin
-                        ptr <= ptr - 1;  // move forward
-                        if(ptr == 1) begin  // swap point not found = finish all
-                            Done <= 1;
-                            swap_state <= FINISH;
-                        end
-                    end
                 end
                 FIND_SWAP_VALUE: begin  // 找尋要跟 swap point 交換的數值
                     if(ptr != 0) begin  // swap point 右半邊全部走過一遍
@@ -97,10 +90,16 @@ module JAM (
                 end
                 FINISH: begin  // 結束交換 等待下一輪
                     if(state == CALC) begin
-                        swap_state <= FIND_SWAP_POINT;
-                        swap_ptr <= 7;
-                        ptr_saver <= 7;
-                        ptr <= 7;
+                        if(next_swap_ptr == 7) begin  // swap point not found = finish all
+                            Done <= 1;
+                            swap_state <= FINISH;
+                        end
+                        else begin
+                            swap_ptr <= next_swap_ptr;
+                            ptr_saver <= next_swap_ptr + 1;
+                            ptr <= next_swap_ptr + 2;
+                            swap_state <= FIND_SWAP_VALUE;  // next state
+                        end
                     end
                 end
             endcase
@@ -118,8 +117,6 @@ module JAM (
         else begin
             case (swap_state)
                 FIND_SWAP_POINT: begin
-                    TotalCost <= 0;
-                    sum_ptr <= 0;
                 end
                 FIND_SWAP_VALUE: begin
                     if(sum_ptr < swap_ptr) begin
@@ -141,6 +138,10 @@ module JAM (
                     if(state == READ) begin
                         TotalCost <= TotalCost + Cost;
                         sum_ptr <= sum_ptr + 1;
+                    end
+                    else begin
+                        TotalCost <= 0;
+                        sum_ptr <= 0;
                     end
                 end
             endcase
