@@ -32,7 +32,6 @@ module JAM (
             W <= 0;
             J <= 0;
             state <= 0;
-            Valid <= 0;
             MinCost <= 1023;
 
             job[0] <= 0; //initial jobs
@@ -308,6 +307,7 @@ module JAM (
 
     always @(negedge CLK) begin
         if(state == 0) begin //state：input data
+            Valid <= 0;
             cost_data[W][J] <= Cost;
         end
         else if(state == 2) begin //state：output
