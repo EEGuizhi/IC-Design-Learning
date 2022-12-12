@@ -1,0 +1,59 @@
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 1
+Design : JAM
+Version: P-2019.03
+Date   : Mon Dec 12 15:17:12 2022
+****************************************
+
+Operating Conditions: slow   Library: slow
+Wire Load Model Mode: top
+
+  Startpoint: Cost[1] (input port clocked by CLK)
+  Endpoint: TotalCost_reg[9]
+            (rising edge-triggered flip-flop clocked by CLK)
+  Path Group: CLK
+  Path Type: max
+
+  Des/Clust/Port     Wire Load Model       Library
+  ------------------------------------------------
+  JAM                tsmc13_wl10           slow
+
+  Point                                    Incr       Path
+  -----------------------------------------------------------
+  clock CLK (fall edge)                    5.00       5.00
+  clock network delay (ideal)              0.50       5.50
+  input external delay                     0.00       5.50 f
+  Cost[1] (in)                             0.00       5.50 f
+  r572/B[1] (JAM_DW01_add_0)               0.00       5.50 f
+  r572/U1_1/CO (ADDFXL)                    0.69       6.19 f
+  r572/U1_2/CO (ADDFXL)                    0.53       6.72 f
+  r572/U1_3/CO (ADDFXL)                    0.53       7.25 f
+  r572/U1_4/CO (ADDFXL)                    0.53       7.77 f
+  r572/U1_5/CO (ADDFXL)                    0.53       8.30 f
+  r572/U1_6/CO (ADDFXL)                    0.63       8.94 f
+  r572/U7/Y (AND2X2)                       0.33       9.27 f
+  r572/U2/Y (AND2X2)                       0.22       9.49 f
+  r572/U6/Y (XOR2X1)                       0.20       9.69 f
+  r572/SUM[9] (JAM_DW01_add_0)             0.00       9.69 f
+  U713/Y (OAI2BB2XL)                       0.37      10.06 f
+  TotalCost_reg[9]/D (DFFXL)               0.00      10.06 f
+  data arrival time                                  10.06
+
+  clock CLK (rise edge)                   10.00      10.00
+  clock network delay (ideal)              0.50      10.50
+  clock uncertainty                       -0.10      10.40
+  TotalCost_reg[9]/CK (DFFXL)              0.00      10.40 r
+  library setup time                      -0.28      10.12
+  data required time                                 10.12
+  -----------------------------------------------------------
+  data required time                                 10.12
+  data arrival time                                 -10.06
+  -----------------------------------------------------------
+  slack (MET)                                         0.06
+
+
+1
