@@ -1,4 +1,4 @@
-//EEGuizhi  (Behavior sim Correct) (此ver3花費較多reg 約280000 cycles)
+//EEGuizhi  (Behavior & Syn sim Correct) (此ver3花費較多reg) (Cycles: 約280000; Cell area: 48181; Total area: 368736)
 module JAM (
     input CLK,
     input RST,

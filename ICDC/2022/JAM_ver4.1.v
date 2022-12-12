@@ -1,4 +1,4 @@
-//EEGuizhi  (Behavior sim Correct) (此ver4花費非常少的reg 約400000 cycles)
+//EEGuizhi  (Behavior & Syn sim Correct) (此ver4花費非常少的reg) (Cycles: 約400000; Cell area: 6632; Total area: 91472)
 module JAM (
     input CLK,
     input RST,
@@ -154,7 +154,6 @@ module JAM (
         if(RST) begin  // reset
             Valid <= 0;
             MinCost <= 1023;
-            TotalCost <= 0;
             state <= READ;
         end
         else begin
