@@ -148,7 +148,7 @@ module JAM (
     end
 
 
-    // State control
+    // State control & calc
     always @(posedge CLK) begin
         if(RST) begin  // reset
             Valid <= 0;

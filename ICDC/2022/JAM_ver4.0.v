@@ -1,4 +1,4 @@
-//EEGuizhi  (Behavior sim Correct) (此ver4花費非常少的reg 約470000 cycles)
+//EEGuizhi  (Behavior sim Correct) (此ver4花費非常少的reg) (Cycles: 約470000)
 module JAM (
     input CLK,
     input RST,

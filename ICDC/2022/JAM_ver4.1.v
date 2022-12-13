@@ -9,7 +9,6 @@ module JAM (
     output reg [9:0] MinCost,
     output reg Valid );
 
-
     parameter READ = 0;
     parameter CALC = 1;
     parameter SWAP = 2;
