@@ -1,4 +1,4 @@
-//EEGuizhi  (Behavior & Syn sim Correct) (此ver4花費非常少的reg) (Cycles: 約400000; Cell area: 6632; Total area: 91472)
+//EEGuizhi  (Behavior Correct) (花費最少的reg) (Cycles: 362888; Cell area: ; Total area: )
 module JAM (
     input CLK,
     input RST,
@@ -9,17 +9,13 @@ module JAM (
     output reg [9:0] MinCost,
     output reg Valid );
 
-    parameter INIT = 0;
-    parameter CALC = 1;
-    parameter SWAP = 2;
-    parameter OUTPUT = 3;
-    reg [1:0] state;
+    parameter COMPARE = 0;
+    parameter OUTPUT = 1;
+    reg state;
 
-    parameter FIND_SWAP_POINT = 0;
-    parameter FIND_SWAP_VALUE = 1;
-    parameter SWITCHING = 2;
-    parameter FINISH = 3;
-    reg [1:0] swap_state;
+    parameter FIND_SWAP_VALUE = 0;
+    parameter SWITCHING = 1;
+    reg swap_state;
 
     reg [2:0] swap_ptr;  // 交換點(swap point)的位置
     wire [2:0] next_swap_ptr;
@@ -34,7 +30,7 @@ module JAM (
 
     assign W = sum_ptr;
     assign J = job[sum_ptr];
-    assign next_swap_ptr =  (job[6] < job[7]) ? 6 :
+    assign next_swap_ptr =  (job[6] < job[7]) ? 6 :  // 找尋 swap point
                             (job[5] < job[6]) ? 5 :
                             (job[4] < job[5]) ? 4 :
                             (job[3] < job[4]) ? 3 :
@@ -42,10 +38,11 @@ module JAM (
                             (job[1] < job[2]) ? 1 :
                             (job[0] < job[1]) ? 0 : 7;
 
+
     // Jobs assignment 字典序演算法(方法提供by題目)
     always @(posedge CLK) begin
         if(RST) begin
-            swap_state <= FINISH;
+            swap_state <= FIND_SWAP_VALUE;
             Done <= 0;
             
             job[0] <= 0;  // initial jobs
@@ -59,17 +56,15 @@ module JAM (
         end
         else begin
             case (swap_state)
-                FIND_SWAP_POINT: begin  // 找尋 swap point
-                end
                 FIND_SWAP_VALUE: begin  // 找尋要跟 swap point 交換的數值
-                    if(ptr != 0) begin  // swap point 右半邊全部走過一遍
+                    if(ptr != 0) begin  // swap point 右半邊全部檢查一遍
                         if(job[swap_ptr] < job[ptr] && job[ptr] < job[ptr_saver]) begin  // get swap value
                             ptr_saver <= ptr;
                         end
                         ptr <= ptr + 1;
                     end
-                    else begin
-                        job[swap_ptr] <= job[ptr_saver];  // swap value in swap point
+                    else if(sum_flag != 1) begin  // 確認沒有在計算上一輪的數值
+                        job[swap_ptr] <= job[ptr_saver];  // 將數值與交換點交換
                         job[ptr_saver] <= job[swap_ptr];
                         ptr_saver <= (8 + swap_ptr) >> 1;  // 取中點 = (swap_ptr + 8) / 2
                         ptr <= 7;
@@ -83,15 +78,10 @@ module JAM (
                         job[swap_ptr + 8 - ptr] <= job[ptr];
                         ptr <= ptr - 1;
                     end
-                    else if(sum_ptr == 0) begin  // wait
-                        swap_state <= FINISH;
-                    end
-                end
-                FINISH: begin  // 結束交換 等待下一輪
-                    if(state == CALC) begin
-                        if(next_swap_ptr == 7) begin  // swap point not found = finish all
+                    else begin  // finish
+                        if(next_swap_ptr == 7) begin  // swap point not found = all finished
                             Done <= 1;
-                            swap_state <= FINISH;
+                            swap_state <= SWITCHING;
                         end
                         else begin
                             swap_ptr <= next_swap_ptr;
@@ -115,10 +105,18 @@ module JAM (
         end
         else begin
             case (swap_state)
-                FIND_SWAP_POINT: begin
-                end
                 FIND_SWAP_VALUE: begin
-                    if(sum_ptr < swap_ptr) begin
+                    if(sum_flag) begin  // 還在計算上一輪的值
+                        if(sum_ptr != 0) begin
+                            TotalCost <= TotalCost + Cost;
+                            sum_ptr <= sum_ptr + 1;
+                        end
+                        else begin  // 計算完成
+                            sum_flag <= 0;
+                            TotalCost <= 0;
+                        end
+                    end
+                    else if(sum_ptr < swap_ptr) begin  // 正在計算當輪的值
                         TotalCost <= TotalCost + Cost;
                         sum_ptr <= sum_ptr + 1;
                     end
@@ -133,40 +131,25 @@ module JAM (
                         sum_flag <= 0;
                     end
                 end
-                FINISH: begin
-                    if(state == INIT) begin
-                        TotalCost <= TotalCost + Cost;
-                        sum_ptr <= sum_ptr + 1;
-                    end
-                    else begin
-                        TotalCost <= 0;
-                        sum_ptr <= 0;
-                    end
-                end
             endcase
         end
     end
 
 
-    // State control
+    // Main
     always @(posedge CLK) begin
         if(RST) begin  // reset
             Valid <= 0;
             MinCost <= 1023;
-            state <= INIT;
+            state <= COMPARE;
         end
         else begin
             case (state)
-                INIT: begin  // read initial costs
-                    if(W == 7) begin
-                        state <= CALC;  // next state
-                    end
-                end
-                CALC: begin
+                COMPARE: begin
                     if(Done) begin
                         state <= OUTPUT;  // next state
                     end
-                    else begin
+                    else if(sum_ptr == 0 && sum_flag == 1) begin  // 計算完成 進行比較
                         if(TotalCost < MinCost) begin  // smaller
                             MinCost <= TotalCost;
                             MatchCount <= 1;
@@ -174,12 +157,7 @@ module JAM (
                         else if(TotalCost == MinCost) begin  // equal
                             MatchCount <= MatchCount + 1;
                         end
-                        state <= SWAP;  // switch jobs
-                    end
-                end
-                SWAP: begin
-                    if(sum_ptr == 0 && sum_flag == 1 || swap_state == FINISH) begin
-                        state <= CALC;
+                        state <= COMPARE;  // switch jobs
                     end
                 end
                 OUTPUT: begin
