@@ -59,7 +59,7 @@ module geofence (
         end
         else begin
             case (state)
-                0:begin // 輸入座標
+                0: begin // 輸入座標
                     if(count == 0) begin
                         tar[0] <= X;
                         tar[1] <= Y;
