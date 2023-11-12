@@ -2,7 +2,7 @@
 
 ## 簡介：
 - 皆由本人獨自完成歷屆練習題
-- (寫得很爛)
+- ~~(寫得很爛)~~
 - 連結 (可改年分)：http://icc.tsri.org.tw/ICC2022/
 
 ## Behavioral Simulation：
