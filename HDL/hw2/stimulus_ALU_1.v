@@ -1,4 +1,4 @@
-//4109061012
+// 4109061012
 module stimulus_ALU_1;
     wire [15:0] y;
     wire cout;

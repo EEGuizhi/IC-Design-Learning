@@ -1,4 +1,4 @@
-//4109061012
+// 4109061012
 module stimulus_FF2;
     reg clk;
     reg rst;
