@@ -1,4 +1,4 @@
-//4109061012
+// 4109061012
 module ram1024X8(clk, addr, data, rw, cs);
     input clk, rw, cs;
     input [9:0] addr;
@@ -7,11 +7,13 @@ module ram1024X8(clk, addr, data, rw, cs);
     reg [7:0] ram [0:1023];
     wire [7:0] dout;
 
-    assign data = (!cs)&&(!rw) ? dout : 8'bzzzzzzzz;
+    assign data = (!cs)&&(!rw) ? dout : 'bz;
     assign dout = ram[addr];
 
     always @(posedge clk) begin
-        if((rw)&&(!cs)) //write mode
-            ram[addr] <= data; 
+        if(rw && !cs)  // write mode
+            ram[addr] <= data;
+        else
+            ram[addr] <= ram[addr];
     end
 endmodule

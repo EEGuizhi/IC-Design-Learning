@@ -1,4 +1,4 @@
-//4109061012
+// 4109061012
 module debounce_testbench();
     reg clk, sig_in;
     wire sig_out;

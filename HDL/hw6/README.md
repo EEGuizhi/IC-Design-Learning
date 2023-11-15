@@ -1,7 +1,7 @@
 # HDL Homework 6 - Stack Module Design
 ### Design specs：
 - The stack has two I/O ports, data_in[7:0] as input port and data_out[7:0] as output port.
-![Alt text](image.png)
+![](pics/image.png)
 
 - The stack consists of a memory module of 8X8, a 3-bit stack pointer “sp”, and three stack flags, </br>
 “full” , “empty” and “error”. The stack is initilaized with “sp” set to 3’b000 , flag “empty” set to 1 , </br>
@@ -42,4 +42,7 @@ happens if stack is empty except the “error” flag becomes 1 if the “pop”
 - When “clear” command is applied, the “sp” is reset to 3’b000, the “full” flag is set to 0, “empty” </br>
 flag set to 1, “error” flag is cleared at the next negative edge of the clock.
 
-![Alt text](image-1.png)
+![](pics/image-1.png)
+
+### Result (waves)：
+![](pics/Waves.png)

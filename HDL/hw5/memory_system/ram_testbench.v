@@ -1,4 +1,4 @@
-//4109061012
+// 4109061012
 module ram_testbench();
     reg clk;
     reg rw;
@@ -16,7 +16,7 @@ module ram_testbench();
     initial clk = 1'b0;
     always #5 clk = ~clk;
     initial begin
-        //k = 0 to 7, write mode
+        // k = 0 to 7, write mode
         {rw, addr, din} = {w, 12'h000, 16'h0000};  #10
         {rw, addr, din} = {w, 12'h400, 16'h0400};  #10
         {rw, addr, din} = {w, 12'h800, 16'h0800};  #10
@@ -56,8 +56,8 @@ module ram_testbench();
         {rw, addr, din} = {w, 12'h407, 16'h0407};  #10
         {rw, addr, din} = {w, 12'h807, 16'h0807};  #10
         {rw, addr, din} = {w, 12'hc07, 16'h0c07};  #10
-        
-        //k = 1 to 4, read mode
+
+        // k = 1 to 4, read mode
         din = 16'bzzzzzzzzzzzzzzzz;
         {rw, addr} = {r, 12'hc01};  #10
         {rw, addr} = {r, 12'h801};  #10
@@ -79,7 +79,7 @@ module ram_testbench();
         {rw, addr} = {r, 12'h404};  #10
         {rw, addr} = {r, 12'h004};  #10
 
-        //k = 0 to 7, write mode
+        // k = 0 to 7, write mode
         {rw, addr, din} = {w, 12'h000, 16'h0000};  #10
         {rw, addr, din} = {w, 12'h400, 16'h0004};  #10
         {rw, addr, din} = {w, 12'h800, 16'h0008};  #10
