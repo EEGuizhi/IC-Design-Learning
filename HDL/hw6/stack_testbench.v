@@ -1,4 +1,4 @@
-//4109061012
+// 4109061012
 module stack_testbench();
     reg clk;
     reg [1:0] cmd;
@@ -14,10 +14,10 @@ module stack_testbench();
     parameter pop = 2'd3;
 
     stack_8x8 STACK(.clk(clk), .data_in(data_in), .cmd(cmd), .data_out(data_out), .full(full), .empty(empty), .error(error));
-    
+
     initial clk = 1'b0;
     always #5 clk = ~clk;
-    
+
     initial begin
         cmd = clr; //clk#1
         #10
