@@ -122,10 +122,22 @@ module vending_machine(
             item_rels <= 0;
         end
         else begin
-            if(price <= 0 && payment_state == PAYING)
+            if(price <= 0 && payment_state == PAYING) begin
+                case (sold_item)
+                    WATER:
+                        item_rels <= 3'b100;
+                    BLACK_TEA:
+                        item_rels <= 3'b101;
+                    COKE:
+                        item_rels <= 3'b110;
+                    JUICE:
+                        item_rels <= 3'b111;
+                    default: price <= 0;
+                endcase
+            end
+            else begin
                 item_rels <= 0;
-            else
-                item_rels <= 0;
+            end
         end
     end
 
