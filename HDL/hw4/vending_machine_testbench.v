@@ -1,4 +1,4 @@
-//4109061012
+// 4109061012
 module vending_machine_testbench;
     reg clk;
     reg reset;
