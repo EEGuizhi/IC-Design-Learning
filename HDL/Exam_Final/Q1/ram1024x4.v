@@ -10,7 +10,9 @@ module ram1024x4(clk, addr, data, rw, cs);
     assign dout = ram[addr];
 
     always @(posedge clk) begin
-        if((!rw)&&(!cs)) //write mode
-            ram[addr] <= data; 
+        if((!rw)&&(!cs))  // write mode
+            ram[addr] <= data;
+        else
+            ram[addr] <= ram[addr];
     end
 endmodule

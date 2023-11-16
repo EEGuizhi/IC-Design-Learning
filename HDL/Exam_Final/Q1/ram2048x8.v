@@ -11,7 +11,7 @@ module ram2048x8(clk, addr, data, rw, cs);
                 2'd0: {cs1, cs2, cs3} = 3'b011;
                 2'd1: {cs1, cs2, cs3} = 3'b101;
                 2'd2: {cs1, cs2, cs3} = 3'b110;
-                2'd3:;
+                2'd3: {cs1, cs2, cs3} = 3'b111;
                 default: {cs1, cs2, cs3} = 3'b111;
             endcase
         end

@@ -11,6 +11,8 @@ module ram512x8(clk, addr, data, rw, cs);
 
     always @(posedge clk) begin
         if((!rw)&&(!cs)) //write mode
-            ram[addr] <= data; 
+            ram[addr] <= data;
+        else
+            ram[addr] <= ram[addr];
     end
 endmodule
