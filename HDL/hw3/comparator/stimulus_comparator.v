@@ -1,4 +1,4 @@
-//4109061012
+// 4109061012
 module stimulus_comparator;
     wire a_gt_b, a_eq_b, a_lt_b;
     reg [15:0] a, b;
@@ -16,5 +16,4 @@ module stimulus_comparator;
 
         $finish;
     end
-    
 endmodule

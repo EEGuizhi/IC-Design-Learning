@@ -1,10 +1,13 @@
-//4109061012
-module comparator_16b (data_a, data_b, a_gt_b, a_eq_b, a_lt_b);
-    input [15:0] data_a, data_b;
-    output a_gt_b, a_eq_b, a_lt_b;
-    wire [3:0] eq;
-    wire [3:0] gt, lt;
-    wire a_gt_b, a_eq_b, a_lt_b;
+// 4109061012
+module comparator_16b (
+    input [15:0] data_a,
+    input [15:0] data_b,
+    output a_gt_b,
+    output a_eq_b,
+    output a_lt_b
+    );
+
+    wire [3:0] gt, eq, lt;
 
     comparator_4b c1_4b(.data_a(data_a[15:12]), .data_b(data_b[15:12]), .gt(gt[3]), .eq(eq[3]), .lt(lt[3]));
     comparator_4b c2_4b(.data_a(data_a[11:8]), .data_b(data_b[11:8]), .gt(gt[2]), .eq(eq[2]), .lt(lt[2]));

@@ -1,6 +1,6 @@
 module test_tb;
     reg clk;
-    reg [3:0]a,b;
+    reg [3:0] a, b;
     wire [4:0] data_out; 
     test test(.clk(clk), .a(a), .b(b), .data_out);
 

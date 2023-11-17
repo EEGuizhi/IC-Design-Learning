@@ -21,5 +21,5 @@ module ALU(
     assign q8 = {1'b0, a ~^ b};
     assign Q2 = op[1] ? (op[0] ? q8 : q7) : (op[0] ? q6 : q5);  // 4:1 MUX
 
-    assign {cout, y} = op[2] ? Q2 : Q1;  //2:1 MUX
+    assign {cout, y} = op[2] ? Q2 : Q1;  // 2:1 MUX
 endmodule
