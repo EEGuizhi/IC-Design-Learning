@@ -23,27 +23,34 @@ module vending_machine(
 
     reg [2:0] return_cycles;
     reg [1:0] sold_item;
+    reg next_state;
 
     // FSM (return change signal control, state = if machine is returning change)
     always @(posedge clk) begin
-        if(reset) begin
+        if(reset)
             change_return <= SP;
+        else
+            change_return <= next_state;
+    end
+    always @(*) begin
+        if(reset) begin
+            next_state = SP;
         end
         else begin
             case (change_return)
                 SP: begin
                     if(sel || price >= 0)
-                        change_return <= SP;
+                        next_state = SP;
                     else
-                        change_return <= RC;
+                        next_state = RC;
                 end
                 RC: begin
                     if(return_cycles == 0)
-                        change_return <= SP;
+                        next_state = SP;
                     else
-                        change_return <= RC;
+                        next_state = RC;
                 end
-                default: change_return <= SP;
+                default: next_state = SP;
             endcase
         end
     end
