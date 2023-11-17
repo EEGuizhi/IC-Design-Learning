@@ -8,57 +8,42 @@ module vending_machine(
     input [1:0] item,
     output reg signed [3:0] price,
     output reg [2:0] item_rels,
-    output reg change_return
+    output reg change_return  // 0: selecting item & paying, 1: returning change
     );
 
     // Items
-    parameter WATER = 0;
-    parameter BLACK_TEA = 1;
-    parameter COKE = 2;
-    parameter JUICE = 3;
+    parameter WATER = 0;  // 20 dollars
+    parameter BLACK_TEA = 1;  // 30 dollars
+    parameter COKE = 2;  // 40 dollars
+    parameter JUICE = 3;  // 50 dollars
 
     // States
-    parameter IDLE = 0;
-    parameter SELECT = 1;
-    parameter PAYING = 2;
-    parameter RETURN = 3;
+    parameter SP = 0;
+    parameter RC = 1;
 
-    reg [3:0] return_cycles;
+    reg [2:0] return_cycles;
     reg [1:0] sold_item;
-    reg [1:0] payment_state;  // 0: IDLE, 1: selecting item, 2: paying, 3: returning change
 
-    // FSM
+    // FSM (return change signal control, state = if machine is returning change)
     always @(posedge clk) begin
         if(reset) begin
-            payment_state <= IDLE;
+            change_return <= SP;
         end
         else begin
-            case (payment_state)
-                IDLE: begin
-                    if(sel)
-                        payment_state <= SELECT;
+            case (change_return)
+                SP: begin
+                    if(sel || price >= 0)
+                        change_return <= SP;
                     else
-                        payment_state <= IDLE;
+                        change_return <= RC;
                 end
-                SELECT: begin
-                    if(sel)
-                        payment_state <= SELECT;
+                RC: begin
+                    if(return_cycles == 0)
+                        change_return <= SP;
                     else
-                        payment_state <= PAYING;
+                        change_return <= RC;
                 end
-                PAYING: begin
-                    if(price > 0)
-                        payment_state <= PAYING;
-                    else
-                        payment_state <= RETURN;
-                end
-                RETURN: begin
-                    if(return_cycles > 0)
-                        payment_state <= RETURN;
-                    else
-                        payment_state <= IDLE;
-                end
-                default: payment_state <= IDLE;
+                default: change_return <= SP;
             endcase
         end
     end
@@ -82,34 +67,59 @@ module vending_machine(
             price <= 0;
         end
         else begin
-            case (payment_state)
-                IDLE: price <= 0;
-                SELECT: begin
-                    case (sold_item)
-                        WATER:  // NT20
-                            price <= 2;
-                        BLACK_TEA:  // NT30
-                            price <= 3;
-                        COKE:  // NT40
-                            price <= 4;
-                        JUICE:  // NT50
-                            price <= 5;
-                        default: price <= 0;
-                    endcase
+            case (change_return)
+                SP: begin
+                    if(sel) begin
+                        case (item)
+                            WATER:
+                                price <= 2;
+                            BLACK_TEA:
+                                price <= 3;
+                            COKE:
+                                price <= 4;
+                            JUICE:
+                                price <= 5;
+                            default: price <= 0;
+                        endcase
+                    end
+                    else if(price == 0) begin
+                        case (sold_item)
+                            WATER:
+                                price <= 2;
+                            BLACK_TEA:
+                                price <= 3;
+                            COKE:
+                                price <= 4;
+                            JUICE:
+                                price <= 5;
+                            default: price <= 0;
+                        endcase
+                    end
+                    else begin
+                        if(dollar_10)
+                            price <= price - 1;
+                        else if(dollar_50)
+                            price <= price - 5;
+                        else
+                            price <= price;
+                    end
                 end
-                PAYING: begin
-                    if(dollar_10)
-                        price <= price - 1;
-                    else if(dollar_50)
-                        price <= price - 5;
+                RC: begin
+                    if(return_cycles == 0) begin
+                        case (sold_item)
+                            WATER:
+                                price <= 2;
+                            BLACK_TEA:
+                                price <= 3;
+                            COKE:
+                                price <= 4;
+                            JUICE:
+                                price <= 5;
+                            default: price <= 0;
+                        endcase
+                    end
                     else
                         price <= price;
-                end
-                RETURN: begin
-                    if(return_cycles > 0)
-                        price <= price;
-                    else
-                        price <= 0;
                 end
                 default: price <= 0;
             endcase
@@ -122,7 +132,7 @@ module vending_machine(
             item_rels <= 0;
         end
         else begin
-            if(price <= 0 && payment_state == PAYING) begin
+            if(price > 0 && ((dollar_50 && price <= 5) || (dollar_10 && price <= 1))) begin
                 case (sold_item)
                     WATER:
                         item_rels <= 3'b100;
@@ -132,7 +142,7 @@ module vending_machine(
                         item_rels <= 3'b110;
                     JUICE:
                         item_rels <= 3'b111;
-                    default: price <= 0;
+                    default: item_rels <= 0;
                 endcase
             end
             else begin
@@ -141,48 +151,30 @@ module vending_machine(
         end
     end
 
-    // Change returning control
+    // Change returning cycle control
     always @(posedge clk) begin
         if(reset) begin
             return_cycles <= 0;
-            change_return <= 0;
         end
         else begin
-            case (payment_state)
-                IDLE: begin
-                    return_cycles <= 0;
-                    change_return <= 0;
-                end
-                SELECT: begin
-                    return_cycles <= 0;
-                    change_return <= 0;
-                end
-                PAYING: begin
-                    change_return <= 0;
+            case (change_return)
+                SP: begin
                     if(price == -4)
-                        return_cycles <= 4;
+                        return_cycles <= 3;
                     else if(price == -3)
-                        return_cycles <= -3;
+                        return_cycles <= 2;
                     else if(price == -2)
-                        return_cycles <= -2;
-                    else if(price == -1)
-                        return_cycles <= -1;
+                        return_cycles <= 1;
                     else
                         return_cycles <= 0;
                 end
-                RETURN: begin
-                    if(return_cycles > 0) begin
-                        change_return <= 1;
+                RC: begin
+                    if(return_cycles != 0)
                         return_cycles <= return_cycles - 1;
-                    end
-                    else begin
-                        change_return <= 0;
-                    end
+                    else
+                        return_cycles <= 0;
                 end
-                default: begin
-                    return_cycles <= 0;
-                    change_return <= 0;
-                end
+                default: return_cycles <= 0;
             endcase
         end
     end
