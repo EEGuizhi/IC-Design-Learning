@@ -1,4 +1,5 @@
-//EEGuizhi  註：這次改coding style 使用大眾寫法
+// EEGuizhi
+// not finished design
 module geofence (
     input clk,
     input reset,
@@ -6,7 +7,7 @@ module geofence (
     input [9:0] Y,
     output reg valid,
     output reg is_inside
-);
+    );
 
     // State
     reg [2:0] cs;
@@ -67,7 +68,7 @@ module geofence (
     end
 
     // FSM
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk or negedge reset) begin
         if(reset) begin  // reset
             cs <= IDLE;
         end
@@ -110,7 +111,7 @@ module geofence (
     end
 
     // Main
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk or negedge reset) begin
         case (cs)
             IDLE: begin
                 count <= 0;
@@ -185,16 +186,21 @@ module geofence (
                 ptrA <= 2;
                 ptrB <= 3;
             end
-            default: ;
+            default: begin
+                count <= 0;
+                pos_times <= 0;
+                ptrO <= 1;
+                ptrA <= 2;
+                ptrB <= 3;
+            end
         endcase
     end
 
     // Output control
-    always @(negedge clk or posedge reset) begin
+    always @(negedge clk or negedge reset) begin
         if(reset || cs != OUTPUT)
             valid <= 0;
         else
             valid <= 1;
     end
-
 endmodule
