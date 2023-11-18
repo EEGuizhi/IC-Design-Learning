@@ -6,20 +6,17 @@ module pipeline (clk, op1, op2, out);
     output [15:0] out;
 
     wire [15:0] out;    /* DO NOT change it to reg type */
-    reg [7:0] ra = 8'b00000000;  /* set initial value of all registers to 0 */
-    reg [7:0] rb = 8'b00000000;
-    reg [7:0] rc = 8'b00000000;
-    reg [15:0] rd = 16'h0000;
+    reg [7:0] Reg_A = 0;  /* set initial value of all registers to 0 */
+    reg [7:0] Reg_B = 0;
+    reg [7:0] Reg_C = 0;
+    reg [15:0] Reg_D = 0;
 
     /* all registers are positive edge triggered */
+    assign out = Reg_D;
     always @(posedge clk) begin
-        ra = op1;
-        rb = op2;
-
-        rc = ra + rd[7:0];
-        rc = rc >> 1;
-        rd = rc * rb;
+        Reg_A <= op1;
+        Reg_B <= op2;
+        Reg_C <= Reg_A + Reg_D[7:0];
+        Reg_D = (Reg_C >> 1) * Reg_B;
     end
-    assign out = rd;
-
 endmodule
