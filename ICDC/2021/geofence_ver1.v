@@ -1,4 +1,4 @@
-//EEGuizhi
+// EEGuizhi
 module geofence (
     input clk,
     input reset,
@@ -86,7 +86,7 @@ module geofence (
         end
     end
 
-    // main
+    // Algorithm
     always @(posedge clk) begin
         if(reset) begin  // init
             count <= 0;
