@@ -17,6 +17,6 @@ module pipeline (clk, op1, op2, out);
         Reg_A <= op1;
         Reg_B <= op2;
         Reg_C <= Reg_A + Reg_D[7:0];
-        Reg_D = (Reg_C >> 1) * Reg_B;
+        Reg_D <= (Reg_C >> 1) * Reg_B;
     end
 endmodule
