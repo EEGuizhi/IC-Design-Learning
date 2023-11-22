@@ -34,19 +34,9 @@
     - ``` reg need_end ```：
         代表Pattern有$字元。
 
-<br>
-
-- <b>組合邏輯：</b>
-    - 描述need_start跟need_end的部分，亦可用assign描述。
-
-<br>
-
-- <b>循序邏輯：</b>
-    - 值得注意的是使用 "<=" 不會立即，而是會在下一週期才等於。因此判斷結束時刻的主要變數：flag, str_ptr變數的變動需要特別注意。
-    - 當一個為零的無號數-1時，可能不會被當作最大值，而是被作為-1處理。
 
 <br>
 
 
-## <b>當前問題：</b>
-(未知 or 沒有)。
+## <b>Behavioral Simulation：</b>
+![](image.png)

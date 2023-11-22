@@ -93,3 +93,17 @@
 
     - <b>表現：</b>
         Cycle數些微偏多 (400,000)，但合成面積很小 (Total Cell area: 6632)。
+
+</br>
+
+## Result：
+- Requirements：</br>
+![](../../VLSI_Lab/Digital_Final/pics/image-4.png)
+
+- ver2：</br>
+![](../../VLSI_Lab/Digital_Final/pics/image-1.png)
+![](../../VLSI_Lab/Digital_Final/pics/image-0.png)
+
+- ver4.1：</br>
+![](../../VLSI_Lab/Digital_Final/pics/image-2.png)
+![](../../VLSI_Lab/Digital_Final/pics/image-3.png)
