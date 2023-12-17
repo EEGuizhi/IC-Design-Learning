@@ -45,4 +45,4 @@ flag set to 1, “error” flag is cleared at the next negative edge of the cloc
 ![](pics/image-1.png)
 
 ### Result (waves)：
-![](pics/waves.png)
+![](pics/Waves.png)
