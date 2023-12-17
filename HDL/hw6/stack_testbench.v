@@ -82,7 +82,7 @@ module stack_testbench();
         data_in = 8'h20;
         #10
         cmd = pop; //clk#25
-        #10
+        #20
         $finish;
     end
 
