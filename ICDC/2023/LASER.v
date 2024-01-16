@@ -28,8 +28,9 @@ module LASER (
 
 
     wire check_done;
-    wire c1_finalcheck;
-    wire c2_finalcheck;
+    wire finalcheck_done;
+    wire c1_lastpos;
+    wire c2_lastpos;
     wire max_update;
 
     wire [3:0] dist_c1 [0:1];
@@ -48,9 +49,10 @@ module LASER (
 
 
     // Whether checking 40 objs is done
-    assign check_done = (obj_ptr > LAST_OBJ) ? TRUE : FALSE;
-    assign c1_finalcheck = (curr_state == MOVE_C1 && {C1Y, C1X} == LAST_POS) ? TRUE : FALSE;
-    assign c2_finalcheck = (curr_state == MOVE_C2 && {C2Y, C2X} == LAST_POS) ? TRUE : FALSE;
+    assign check_done = (obj_ptr == LAST_OBJ+1 || obj_ptr == LAST_OBJ+2) ? TRUE : FALSE;
+    assign finalcheck_done = (obj_ptr == LAST_OBJ+2) ? TRUE : FALSE;
+    assign c1_lastpos = ({C1Y, C1X} == LAST_POS) ? TRUE : FALSE;
+    assign c2_lastpos = ({C2Y, C2X} == LAST_POS) ? TRUE : FALSE;
 
     // Max count update
     assign max_update = (obj_counts > max_counts) ? TRUE : FALSE;
@@ -97,13 +99,13 @@ module LASER (
                         next_state = INPUT;
                 end
                 MOVE_C1: begin
-                    if(obj_ptr == LAST_OBJ+2 && {C1Y, C1X} == LAST_POS)  // 2 cycles after final counting
+                    if(finalcheck_done && c1_lastpos)  // 2 cycles after final counting
                         next_state = MOVE_C2;
                     else
                         next_state = MOVE_C1;
                 end
                 MOVE_C2: begin
-                    if(obj_ptr == LAST_OBJ+2 && {C2Y, C2X} == LAST_POS)
+                    if(finalcheck_done && c2_lastpos)
                         if(not_converge)
                             next_state = MOVE_C1;
                         else
@@ -144,32 +146,16 @@ module LASER (
                         obj_ptr <= obj_ptr + 1;
                 end
                 MOVE_C1: begin
-                    if({C1Y, C1X} == LAST_POS) begin
-                        if(obj_ptr == LAST_OBJ+2)
-                            obj_ptr <= 0;
-                        else
-                            obj_ptr <= obj_ptr + 1;
-                    end
-                    else begin
-                        if(check_done)
-                            obj_ptr <= 0;
-                        else
-                            obj_ptr <= obj_ptr + 1;
-                    end
+                    if((c1_lastpos && finalcheck_done) || (!c1_lastpos && check_done))
+                        obj_ptr <= 0;
+                    else
+                        obj_ptr <= obj_ptr + 1;
                 end
                 MOVE_C2: begin
-                    if({C2Y, C2X} == LAST_POS) begin
-                        if(obj_ptr == LAST_OBJ+2)
-                            obj_ptr <= 0;
-                        else
-                            obj_ptr <= obj_ptr + 1;
-                    end
-                    else begin
-                        if(check_done)
-                            obj_ptr <= 0;
-                        else
-                            obj_ptr <= obj_ptr + 1;
-                    end
+                    if((c2_lastpos && finalcheck_done) || (!c2_lastpos && check_done))
+                        obj_ptr <= 0;
+                    else
+                        obj_ptr <= obj_ptr + 1;
                 end
                 FINISH: obj_ptr <= 0;
                 default: obj_ptr <= 0;
@@ -183,36 +169,42 @@ module LASER (
         if(RST)
             {C1Y, C1X} <= 0;
         else begin
-            if(check_done) begin
-                if(curr_state == MOVE_C1) begin
-                    if({C1Y, C1X} == LAST_POS)  // prepare for C2 searching
-                        {C1Y, C1X} <= {best_pos[y], best_pos[x]};
-                    else  // next position
+            case(curr_state)
+                INPUT: {C1Y, C1X} <= 0;  // reset
+                MOVE_C1: begin
+                    if(check_done && !c1_lastpos)  // next position
                         {C1Y, C1X} <= {C1Y, C1X} + 1;
+                    else if(finalcheck_done)  // prepare for C2 searching
+                        {C1Y, C1X} <= {best_pos[y], best_pos[x]};
                 end
-                else if(c2_finalcheck && not_converge)  // prepare for C1 searching
-                    {C1Y, C1X} <= 0;
-            end
-            else if(DONE)  // reset
-                {C1Y, C1X} <= 0;
+                MOVE_C2: begin
+                    if(finalcheck_done && not_converge)  // prepare for C1 searching
+                        {C1Y, C1X} <= 0;
+                end
+                FINISH: {C1Y, C1X} <= {C1Y, C1X};
+                default: {C1Y, C1X} <= 0;
+            endcase
         end
     end
     always @(posedge CLK) begin  // Circle 2
         if(RST)
             {C2Y, C2X} <= 0;
         else begin
-            if(check_done) begin
-                if(curr_state == MOVE_C2) begin
-                    if({C2Y, C2X} == LAST_POS)  // prepare for C1 searching, or FINISH
-                        {C2Y, C2X} <= {best_pos[y], best_pos[x]};
-                    else  // next position
-                        {C2Y, C2X} <= {C2Y, C2X} + 1;
+            case(curr_state)
+                INPUT: {C2Y, C2X} <= 0;  // reset
+                MOVE_C1: begin
+                    if(finalcheck_done)  // prepare for C2 searching
+                        {C2Y, C2X} <= 0;
                 end
-                else if(c1_finalcheck)  // prepare for C2 searching
-                    {C2Y, C2X} <= 0;
-            end
-            else if(DONE)  // reset
-                {C2Y, C2X} <= 0;
+                MOVE_C2: begin
+                    if(check_done && !c2_lastpos)  // next position
+                        {C2Y, C2X} <= {C2Y, C2X} + 1;
+                    else if(finalcheck_done)  // prepare for C1 searching
+                        {C2Y, C2X} <= {best_pos[y], best_pos[x]};
+                end
+                FINISH: {C2Y, C2X} <= {C2Y, C2X};
+                default: {C2Y, C2X} <= 0;
+            endcase
         end
     end
 
@@ -246,7 +238,7 @@ module LASER (
         if(RST)
             not_converge <= FALSE;
         else begin
-            if(obj_ptr == LAST_OBJ+2 || DONE)  // reset
+            if((curr_state == MOVE_C2 && finalcheck_done) || DONE)  // reset
                 not_converge <= FALSE;
             else if(check_done && max_update)
                 not_converge <= TRUE;
