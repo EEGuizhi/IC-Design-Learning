@@ -27,6 +27,11 @@ module LASER (
     parameter LAST_POS = {4'b1111, 4'b1111};
 
 
+    wire check_done;
+    wire c1_finalcheck;
+    wire c2_finalcheck;
+    wire max_update;
+
     wire [3:0] dist_c1 [0:1];
     wire [3:0] dist_c2 [0:1];
     reg inside_c1, inside_c2;
@@ -38,10 +43,6 @@ module LASER (
     reg [3:0] best_pos [0:1];
     reg not_converge;
 
-    wire check_done;
-    wire c1_finalcheck;
-    wire c2_finalcheck;
-
     reg [1:0] curr_state;
     reg [1:0] next_state;
 
@@ -50,6 +51,9 @@ module LASER (
     assign check_done = (obj_ptr > LAST_OBJ) ? TRUE : FALSE;
     assign c1_finalcheck = (curr_state == MOVE_C1 && {C1Y, C1X} == LAST_POS) ? TRUE : FALSE;
     assign c2_finalcheck = (curr_state == MOVE_C2 && {C2Y, C2X} == LAST_POS) ? TRUE : FALSE;
+
+    // Max count update
+    assign max_update = (obj_counts > max_counts) ? TRUE : FALSE;
 
     // Inside circles checking
     assign dist_c1[x] = (C1X > objects[obj_ptr][x]) ? C1X - objects[obj_ptr][x] : objects[obj_ptr][x] - C1X;  // dist x to c1
@@ -140,16 +144,32 @@ module LASER (
                         obj_ptr <= obj_ptr + 1;
                 end
                 MOVE_C1: begin
-                    if(obj_ptr < 63)
-                        obj_ptr <= 0;
-                    else
-                        obj_ptr <= obj_ptr + 1;
+                    if({C1Y, C1X} == LAST_POS) begin
+                        if(obj_ptr == LAST_OBJ+2)
+                            obj_ptr <= 0;
+                        else
+                            obj_ptr <= obj_ptr + 1;
+                    end
+                    else begin
+                        if(check_done)
+                            obj_ptr <= 0;
+                        else
+                            obj_ptr <= obj_ptr + 1;
+                    end
                 end
                 MOVE_C2: begin
-                    if(obj_ptr < 63)
-                        obj_ptr <= 0;
-                    else
-                        obj_ptr <= obj_ptr + 1;
+                    if({C2Y, C2X} == LAST_POS) begin
+                        if(obj_ptr == LAST_OBJ+2)
+                            obj_ptr <= 0;
+                        else
+                            obj_ptr <= obj_ptr + 1;
+                    end
+                    else begin
+                        if(check_done)
+                            obj_ptr <= 0;
+                        else
+                            obj_ptr <= obj_ptr + 1;
+                    end
                 end
                 FINISH: obj_ptr <= 0;
                 default: obj_ptr <= 0;
@@ -159,7 +179,7 @@ module LASER (
 
 
     // Position control
-    always @(posedge CLK) begin
+    always @(posedge CLK) begin  // Circle 1
         if(RST)
             {C1Y, C1X} <= 0;
         else begin
@@ -173,11 +193,11 @@ module LASER (
                 else if(c2_finalcheck && not_converge)  // prepare for C1 searching
                     {C1Y, C1X} <= 0;
             end
-            else if(curr_state == FINISH)  // reset
+            else if(DONE)  // reset
                 {C1Y, C1X} <= 0;
         end
     end
-    always @(posedge CLK) begin
+    always @(posedge CLK) begin  // Circle 2
         if(RST)
             {C2Y, C2X} <= 0;
         else begin
@@ -191,14 +211,14 @@ module LASER (
                 else if(c1_finalcheck)  // prepare for C2 searching
                     {C2Y, C2X} <= 0;
             end
-            else if(curr_state == FINISH)  // reset
+            else if(DONE)  // reset
                 {C2Y, C2X} <= 0;
         end
     end
 
 
     // Logging best result
-    always @(posedge CLK) begin
+    always @(posedge CLK) begin  // counting objects
         if(RST)
             obj_counts <= 0;
         else begin
@@ -208,41 +228,35 @@ module LASER (
                 else if(inside_c1 || inside_c2)  // counting
                     obj_counts <= obj_counts + 1;
             end
-            else  // not counting when not searching C1, C2
+            else  // not counting when not searching C1 or C2
                 obj_counts <= 0;
         end
     end
-    always @(posedge CLK) begin
+    always @(posedge CLK) begin  // logging max count
         if(RST)
             max_counts <= 0;
         else begin
-            if(check_done && obj_counts > max_counts)
+            if(check_done && max_update)  // update max
                 max_counts <= obj_counts;
-            else
-                max_counts <= max_counts;
+            else if(DONE)  // reset
+                max_counts <= 0;
         end
     end
-    always @(posedge CLK) begin
+    always @(posedge CLK) begin  // convergence checking
         if(RST)
             not_converge <= FALSE;
         else begin
-            if(check_done) begin
-                if(c1_finalcheck || c2_finalcheck)
-                    not_converge <= FALSE;
-                else if(obj_counts > max_counts)
-                    not_converge <= TRUE;
-                else
-                    not_converge <= not_converge;
-            end
-            else
-                not_converge <= not_converge;
+            if(obj_ptr == LAST_OBJ+2 || DONE)  // reset
+                not_converge <= FALSE;
+            else if(check_done && max_update)
+                not_converge <= TRUE;
         end
     end
-    always @(posedge CLK) begin
+    always @(posedge CLK) begin  // saving best position
         if(RST)
             {best_pos[y], best_pos[x]} <= 0;
         else begin
-            if(check_done && obj_counts > max_counts) begin
+            if(check_done && max_update) begin
                 if(curr_state == MOVE_C1)
                     {best_pos[y], best_pos[x]} <= {C1Y, C1X};
                 else  // MOVE_C2
@@ -258,7 +272,7 @@ module LASER (
     always @(posedge CLK) begin
         if(curr_state == FINISH && !RST)
             DONE <= TRUE;
-        else
+        else  // RST or not FINISH
             DONE <= FALSE;
     end
 endmodule
