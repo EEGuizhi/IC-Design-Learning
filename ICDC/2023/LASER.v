@@ -35,8 +35,6 @@ module LASER (
     wire max_update;
     wire exchange, restart;
 
-    wire [3:0] p_obj_y;
-
     wire [3:0] dist_c1 [0:1];
     wire [3:0] dist_c2 [0:1];
     reg inside_c1, inside_c2;
@@ -54,20 +52,22 @@ module LASER (
     reg [2:0] curr_state;
     reg [2:0] next_state;
 
-    assign p_obj_y = objects[obj_ptr][y];
-
 
     // Sorting
     assign exchange = ({objects[obj_ptr][y], objects[obj_ptr][x]} > {objects[obj_ptr+1][y], objects[obj_ptr+1][x]}) ? TRUE : FALSE;
     assign restart = (obj_ptr == (LAST_OBJ-1 - obj_counts)) ? TRUE : FALSE;
 
     // Whether checking 40 objs is done
-    assign check_done = (obj_ptr == LAST_OBJ+1 || obj_ptr == LAST_OBJ+2) ?
-                            TRUE : (curr_state == MOVE_C1) ?
-                                (C1Y+5 == objects[obj_ptr][y]) ?
-                                    TRUE : FALSE:
-                                (C2Y+5 == objects[obj_ptr][y]) ?
-                                    TRUE : FALSE;
+    assign check_done = (curr_state == MOVE_C1) ?
+                            (C1Y == 11 || C1Y == 12 || C1Y == 13 || C1Y == 14 || C1Y == 15) ?
+                                (obj_ptr == LAST_OBJ+1) ? TRUE : FALSE
+                            :
+                                (obj_ptr == row_ends[C1Y+4]) ? TRUE : FALSE
+                        :
+                            (C2Y == 11 || C2Y == 12 || C2Y == 13 || C2Y == 14 || C2Y == 15) ?
+                                (obj_ptr == LAST_OBJ+1) ? TRUE : FALSE
+                            :
+                                (obj_ptr == row_ends[C2Y+4]) ? TRUE : FALSE;
 
     // Max count update
     assign max_update = (obj_counts > max_counts) ? TRUE : FALSE;
@@ -120,7 +120,7 @@ module LASER (
                         next_state = SORTING;
                 end
                 FIND_ROW: begin
-                    if(obj_ptr == LAST_OBJ+1)
+                    if(obj_ptr == LAST_OBJ+1 && row_ptr == 15)
                         next_state = MOVE_C1;
                     else
                         next_state = FIND_ROW;
@@ -240,7 +240,7 @@ module LASER (
     always @(posedge CLK) begin  // row pointer control
         if(RST || curr_state == SORTING)
             row_ptr <= 0;
-        else if(curr_state == FIND_ROW && row_ptr != objects[obj_ptr][y])
+        else if(curr_state == FIND_ROW && (row_ptr != objects[obj_ptr][y] || obj_ptr == LAST_OBJ+1))
             row_ptr <= row_ptr + 1;
     end
 
