@@ -31,8 +31,12 @@ module LASER (
     parameter LAST_POS = {4'b1111, 4'b1111};
 
 
+    wire c1_y_lower;
+    wire [3:0] low_y;
+    wire [3:0] high_y;
+
     wire check_done;
-    wire max_update;
+    wire max_update, equal_max;
     wire exchange, restart;
 
     wire [3:0] dist_c1 [0:1];
@@ -47,30 +51,31 @@ module LASER (
     reg [5:0] obj_counts;
     reg [5:0] max_counts;
     reg [3:0] best_pos [0:1];
+    reg [3:0] last_pos [0:1];
     reg not_converge;
 
     reg [2:0] curr_state;
     reg [2:0] next_state;
 
 
+    // Search bound
+    assign c1_y_lower = (C1Y < C2Y) ? TRUE : FALSE;
+    assign low_y = c1_y_lower ? C1Y : C2Y;
+    assign high_y = c1_y_lower ? C2Y : C1Y;
+
     // Sorting
     assign exchange = ({objects[obj_ptr][y], objects[obj_ptr][x]} > {objects[obj_ptr+1][y], objects[obj_ptr+1][x]}) ? TRUE : FALSE;
     assign restart = (obj_ptr == (LAST_OBJ-1 - obj_counts)) ? TRUE : FALSE;
 
     // Whether checking 40 objs is done
-    assign check_done = (curr_state == MOVE_C1) ?
-                            (C1Y == 11 || C1Y == 12 || C1Y == 13 || C1Y == 14 || C1Y == 15) ?
-                                (obj_ptr == LAST_OBJ+1) ? TRUE : FALSE
-                            :
-                                (obj_ptr == row_ends[C1Y+4]) ? TRUE : FALSE
+    assign check_done = (high_y == 11 || high_y == 12 || high_y == 13 || high_y == 14 || high_y == 15) ?
+                            (obj_ptr == LAST_OBJ+1) ? TRUE : FALSE
                         :
-                            (C2Y == 11 || C2Y == 12 || C2Y == 13 || C2Y == 14 || C2Y == 15) ?
-                                (obj_ptr == LAST_OBJ+1) ? TRUE : FALSE
-                            :
-                                (obj_ptr == row_ends[C2Y+4]) ? TRUE : FALSE;
+                            (obj_ptr == row_ends[high_y+4]) ? TRUE : FALSE;
 
     // Max count update
     assign max_update = (obj_counts > max_counts) ? TRUE : FALSE;
+    assign equal_max = (obj_counts == max_counts) ? TRUE : FALSE;
 
     // Inside circles checking
     assign dist_c1[x] = (C1X > objects[obj_ptr][x]) ? C1X - objects[obj_ptr][x] : objects[obj_ptr][x] - C1X;  // dist x to c1
@@ -207,20 +212,20 @@ module LASER (
                 end
                 MOVE_C1: begin
                     if(check_done) begin
-                        if(C1Y == 0 || C1Y == 1 || C1Y == 2 || C1Y == 3 || C1Y == 4)
+                        if(low_y == 0 || low_y == 1 || low_y == 2 || low_y == 3 || low_y == 4)
                             obj_ptr <= 0;
                         else
-                            obj_ptr <= row_ends[C1Y - 5];
+                            obj_ptr <= row_ends[low_y - 5];
                     end
                     else
                         obj_ptr <= obj_ptr + 1;
                 end
                 MOVE_C2: begin
                     if(check_done) begin
-                        if(C2Y == 0 || C2Y == 1 || C2Y == 2 || C2Y == 3 || C2Y == 4)
+                        if(low_y == 0 || low_y == 1 || low_y == 2 || low_y == 3 || low_y == 4)
                             obj_ptr <= 0;
                         else
-                            obj_ptr <= row_ends[C2Y - 5];
+                            obj_ptr <= row_ends[low_y - 5];
                     end
                     else
                         obj_ptr <= obj_ptr + 1;
@@ -357,13 +362,13 @@ module LASER (
         else begin
             case(curr_state)
                 MOVE_C1: begin
-                    if(max_update)
+                    if(max_update || equal_max)
                         {best_pos[y], best_pos[x]} <= {C1Y, C1X};
                 end
                 LOC_C1:
                     {best_pos[y], best_pos[x]} <= {C2Y, C2X};
                 MOVE_C2: begin
-                    if(max_update)
+                    if(max_update || equal_max)
                         {best_pos[y], best_pos[x]} <= {C2Y, C2X};
                 end
                 LOC_C2:
