@@ -1,0 +1,64 @@
+>> Pattern 1:
+total objects count = 40
+find c1 = [ 10  12], cover = 17
+find c2 = [  4  10], cover = 29
+find c1 = [ 11  12], cover = 30
+find c2 = [  4  10], cover = 30
+best centers: C1 = [ 11  12], C2 = [  4  10]
+==> Cover = 30, Opt = 30, Pass = True
+
+>> Pattern 2:
+total objects count = 40
+find c1 = [  7  10], cover = 15
+find c2 = [ 12   6], cover = 25
+find c1 = [  5  11], cover = 26
+find c2 = [ 11   6], cover = 28
+find c1 = [  5  11], cover = 28
+best centers: C1 = [  5  11], C2 = [ 11   6]
+==> Cover = 28, Opt = 28, Pass = True
+
+>> Pattern 3:
+total objects count = 40
+find c1 = [  7   7], cover = 20
+find c2 = [ 12   4], cover = 28
+find c1 = [  6   9], cover = 28
+find c2 = [ 10   5], cover = 29
+find c1 = [  5  10], cover = 29
+find c2 = [ 10   5], cover = 29
+best centers: C1 = [  5  10], C2 = [ 10   5]
+==> Cover = 29, Opt = 29, Pass = True
+
+>> Pattern 4:
+total objects count = 40
+find c1 = [  8   7], cover = 19
+find c2 = [  4   5], cover = 28
+find c1 = [ 10   8], cover = 29
+find c2 = [  5   5], cover = 29
+find c1 = [ 10   5], cover = 30
+find c2 = [  4   9], cover = 30
+find c1 = [ 10   5], cover = 30
+best centers: C1 = [ 10   5], C2 = [  4   9]
+==> Cover = 30, Opt = 30, Pass = True
+
+>> Pattern 5:
+total objects count = 40
+find c1 = [  5  12], cover = 14
+find c2 = [  4   8], cover = 21
+find c1 = [  5  14], cover = 21
+find c2 = [  3   9], cover = 21
+find c1 = [  8  12], cover = 22
+find c2 = [  2  10], cover = 23
+find c1 = [  8  12], cover = 23
+best centers: C1 = [  8  12], C2 = [  2  10]
+==> Cover = 23, Opt = 23, Pass = True
+
+>> Pattern 6:
+total objects count = 40
+find c1 = [  9   6], cover = 22
+find c2 = [ 15   3], cover = 29
+find c1 = [ 10   8], cover = 29
+find c2 = [ 13   2], cover = 30
+find c1 = [  9   9], cover = 30
+find c2 = [ 13   2], cover = 30
+best centers: C1 = [  9   9], C2 = [ 13   2]
+==> Cover = 30, Opt = 30, Pass = True
