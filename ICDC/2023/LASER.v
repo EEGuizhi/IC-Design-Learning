@@ -59,11 +59,11 @@ module LASER (
     assign restart = (obj_ptr == (LAST_OBJ-1 - obj_counts)) ? TRUE : FALSE;
 
     // Whether checking 40 objs is done
-    assign c1_search_done = (C1Y == 11 || C1Y == 12 || C1Y == 13 || C1Y == 14 || C1Y == 15) ?
+    assign c1_search_done = (C1Y > 10) ?
                                 (obj_ptr == LAST_OBJ+1) ? TRUE : FALSE
                             :
                                 (obj_ptr == row_ends[C1Y+4]) ? TRUE : FALSE;
-    assign c2_search_done = (C2Y == 11 || C2Y == 12 || C2Y == 13 || C2Y == 14 || C2Y == 15) ?
+    assign c2_search_done = (C2Y > 10) ?
                                 (obj_ptr == LAST_OBJ+1) ? TRUE : FALSE
                             :
                                 (obj_ptr == row_ends[C2Y+4]) ? TRUE : FALSE;
@@ -107,62 +107,58 @@ module LASER (
             curr_state <= next_state;
     end
     always @(*) begin
-        if(RST)
-            next_state = 0;
-        else begin
-            case(curr_state)
-                INPUT: begin
-                    if(obj_ptr == LAST_OBJ)
-                        next_state = SORTING;
-                    else
-                        next_state = INPUT;
-                end
-                SORTING: begin
-                    if(obj_counts == LAST_OBJ-1)
-                        next_state = FIND_ROW;
-                    else
-                        next_state = SORTING;
-                end
-                FIND_ROW: begin
-                    if(obj_ptr == LAST_OBJ+1 && row_ptr == 15)
-                        next_state = MOVE_C1;
-                    else
-                        next_state = FIND_ROW;
-                end
-                MOVE_C1: begin
-                    if(check_done && {C1Y, C1X} == LAST_POS)
-                        next_state = LOC_C1;
-                    else
-                        next_state = MOVE_C1;
-                end
-                LOC_C1: begin
-                    if(converge)
-                        next_state = FINISH;
-                    else
-                        next_state = MOVE_C2;
-                end
-                MOVE_C2: begin
-                    if(check_done && {C2Y, C2X} == LAST_POS)
-                        next_state = LOC_C2;
-                    else
-                        next_state = MOVE_C2;
-                end
-                LOC_C2: begin
-                    if(converge)
-                        next_state = FINISH;
-                    else
-                        next_state = MOVE_C1;
-                end
-                FINISH: begin
-                    if(DONE)
-                        next_state = INPUT;
-                    else
-                        next_state = FINISH;
-                end
-                default:
-                    next_state = 0;
-            endcase
-        end
+        case(curr_state)
+            INPUT: begin
+                if(obj_ptr == LAST_OBJ)
+                    next_state = SORTING;
+                else
+                    next_state = INPUT;
+            end
+            SORTING: begin
+                if(obj_counts == LAST_OBJ-1)
+                    next_state = FIND_ROW;
+                else
+                    next_state = SORTING;
+            end
+            FIND_ROW: begin
+                if(obj_ptr == LAST_OBJ+1 && row_ptr == 15)
+                    next_state = MOVE_C1;
+                else
+                    next_state = FIND_ROW;
+            end
+            MOVE_C1: begin
+                if(check_done && {C1Y, C1X} == LAST_POS)
+                    next_state = LOC_C1;
+                else
+                    next_state = MOVE_C1;
+            end
+            LOC_C1: begin
+                if(converge)
+                    next_state = FINISH;
+                else
+                    next_state = MOVE_C2;
+            end
+            MOVE_C2: begin
+                if(check_done && {C2Y, C2X} == LAST_POS)
+                    next_state = LOC_C2;
+                else
+                    next_state = MOVE_C2;
+            end
+            LOC_C2: begin
+                if(converge)
+                    next_state = FINISH;
+                else
+                    next_state = MOVE_C1;
+            end
+            FINISH: begin
+                if(DONE)
+                    next_state = INPUT;
+                else
+                    next_state = FINISH;
+            end
+            default:
+                next_state = 0;
+        endcase
     end
 
 
@@ -211,7 +207,7 @@ module LASER (
                 end
                 MOVE_C1: begin
                     if(check_done) begin
-                        if(C1Y == 0 || C1Y == 1 || C1Y == 2 || C1Y == 3 || C1Y == 4)
+                        if(C1Y < 5)
                             obj_ptr <= 0;
                         else
                             obj_ptr <= row_ends[C1Y - 5];
@@ -221,7 +217,7 @@ module LASER (
                 end
                 MOVE_C2: begin
                     if(check_done) begin
-                        if(C2Y == 0 || C2Y == 1 || C2Y == 2 || C2Y == 3 || C2Y == 4)
+                        if(C2Y < 5)
                             obj_ptr <= 0;
                         else
                             obj_ptr <= row_ends[C2Y - 5];
@@ -381,9 +377,13 @@ module LASER (
 
     // Finish searching
     always @(posedge CLK) begin
-        if(!RST && !DONE && curr_state == FINISH)
-            DONE <= TRUE;
-        else  // RST or not FINISH
+        if(RST)
             DONE <= FALSE;
+        else begin
+            if(curr_state == FINISH && !DONE)
+                DONE <= TRUE;
+            else
+                DONE <= FALSE;
+        end
     end
 endmodule
