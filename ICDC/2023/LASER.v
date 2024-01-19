@@ -60,13 +60,13 @@ module LASER (
 
     // Whether checking 40 objs is done
     assign c1_search_done = (C1Y == 11 || C1Y == 12 || C1Y == 13 || C1Y == 14 || C1Y == 15) ?
-                            (obj_ptr == LAST_OBJ+1) ? TRUE : FALSE
-                        :
-                            (obj_ptr == row_ends[C1Y+4]) ? TRUE : FALSE;
+                                (obj_ptr == LAST_OBJ+1) ? TRUE : FALSE
+                            :
+                                (obj_ptr == row_ends[C1Y+4]) ? TRUE : FALSE;
     assign c2_search_done = (C2Y == 11 || C2Y == 12 || C2Y == 13 || C2Y == 14 || C2Y == 15) ?
-                            (obj_ptr == LAST_OBJ+1) ? TRUE : FALSE
-                        :
-                            (obj_ptr == row_ends[C2Y+4]) ? TRUE : FALSE;
+                                (obj_ptr == LAST_OBJ+1) ? TRUE : FALSE
+                            :
+                                (obj_ptr == row_ends[C2Y+4]) ? TRUE : FALSE;
     assign check_done = (curr_state == MOVE_C1) ? c1_search_done : c2_search_done;
 
     // Max count update
