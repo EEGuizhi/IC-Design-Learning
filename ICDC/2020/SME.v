@@ -27,7 +27,7 @@ module SME(
 
     reg [1:0] cs, ns;
     reg [7:0] str [0:33];  // save string (max 32 words + 1 head + 1 rear)
-    reg [7:0] pat [0:10];   // save pattern (max 8 words)
+    reg [7:0] pat [0:8];   // save pattern (max 8 words)
 
     reg [5:0] str_ptr;   // string pointer(index)
     reg [3:0] pat_ptr;   // pattern pointer(index)

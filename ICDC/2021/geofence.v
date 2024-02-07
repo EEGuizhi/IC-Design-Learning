@@ -46,7 +46,7 @@ module geofence (
     // Cross value
     assign v_cross1 = vec1[x] * vec2[y];  // vec1 x vec2 part 1
     assign v_cross2 = vec1[y] * vec2[x];  // vec1 x vec2 part 2
-    assign right = (v_cross1 > v_cross2 && count != 6 && round != 6) ? 1 : 0;  // direction of cross value
+    assign right = (v_cross1 > v_cross2) ? 1 : 0;  // direction of cross value
 
 
     // FSM
@@ -57,7 +57,7 @@ module geofence (
             cs <= ns;
     end
     always @(*) begin
-        case (cs)
+        case(cs)
             INPUT: begin
                 if(count == 7)
                     ns = CALC;
@@ -80,7 +80,6 @@ module geofence (
                 ns = INPUT;
         endcase
     end
-
 
     // inputs (to memory)
     always @(posedge clk or posedge reset) begin
@@ -177,77 +176,6 @@ module geofence (
                 is_inside <= 0;
         end
     end
-
-
-    // // Algorithm
-    // always @(posedge clk) begin
-    //     if(reset) begin  // init
-    //         count <= 0;
-    //         round <= 0;
-    //         right_times <= 0;
-    //     end
-    //     else begin
-    //         case (cs)
-    //             INPUT: begin  // read coords
-    //                 if(count == 0) begin
-    //                     tar[0] <= X;
-    //                     tar[1] <= Y;
-    //                     count <= count + 1;
-    //                 end
-    //                 else if(count <= 6) begin
-    //                     rec[count-1][0] <= X;
-    //                     rec[count-1][1] <= Y;
-    //                     count <= count + 1;
-    //                 end
-    //                 else begin
-    //                     count <= 0;
-    //                     round <= 0;
-    //                     right_times <= 0;
-    //                 end
-    //             end
-    //             CALC: begin  // calc
-    //                 if(round < 6) begin
-    //                     if(round == count) begin  // vec2's from & to are same
-    //                         count <= count + 1;
-    //                     end
-    //                     else if(right) begin  // if vec1 at right side of vec2, next round
-    //                         right_times <= right_times + 1;
-    //                         round <= round + 1;
-    //                         count <= 0;
-    //                     end
-    //                     else if(count > 5) begin  // count exceed 5, calc finish
-    //                         round <= round + 1;
-    //                         count <= 0;
-    //                     end
-    //                     else begin
-    //                         count <= count + 1;
-    //                     end
-    //                 end
-    //                 else begin
-    //                     if(right_times == 6)
-    //                         is_inside <= 1;
-    //                     else
-    //                         is_inside <= 0;
-    //                 end
-    //             end
-    //             OUTPUT: begin
-    //                 count <= 0;
-    //                 round <= 0;
-    //                 right_times <= 0;
-    //             end
-    //             NOTUSED: begin
-    //                 count <= 0;
-    //                 round <= 0;
-    //                 right_times <= 0;
-    //             end
-    //             default: begin
-    //                 count <= 0;
-    //                 round <= 0;
-    //                 right_times <= 0;
-    //             end
-    //         endcase
-    //     end
-    // end
 
     // valid signal control
     always @(posedge clk or posedge reset) begin

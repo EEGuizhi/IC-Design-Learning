@@ -1,0 +1,66 @@
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 1
+Design : huffman
+Version: L-2016.03
+Date   : Wed Feb  7 22:21:18 2024
+****************************************
+
+Operating Conditions: slow   Library: slow
+Wire Load Model Mode: top
+
+  Startpoint: idx_2_reg[1]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: order_reg[3][0]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Des/Clust/Port     Wire Load Model       Library
+  ------------------------------------------------
+  huffman            tsmc13_wl10           slow
+
+  Point                                    Incr       Path
+  -----------------------------------------------------------
+  clock clk (rise edge)                    0.00       0.00
+  clock network delay (ideal)              0.50       0.50
+  idx_2_reg[1]/CK (DFFRX1)                 0.00       0.50 r
+  idx_2_reg[1]/QN (DFFRX1)                 0.94       1.44 r
+  U978/Y (NAND2X1)                         0.51       1.95 f
+  U979/Y (NOR2X2)                          0.50       2.45 r
+  U742/Y (CLKINVX1)                        0.53       2.98 f
+  U1008/Y (OAI22XL)                        0.60       3.58 r
+  U912/Y (NOR3XL)                          0.29       3.87 f
+  U735/Y (OAI22XL)                         0.53       4.40 r
+  U1009/Y (OAI2BB1X1)                      0.32       4.72 f
+  U1013/Y (AOI222X1)                       0.62       5.33 r
+  U1017/Y (AOI222X1)                       0.46       5.79 f
+  U1025/Y (AOI222X1)                       0.62       6.42 r
+  U1030/Y (AOI222X1)                       0.46       6.88 f
+  U1034/Y (AOI222X1)                       0.64       7.52 r
+  U746/Y (AOI222X1)                        0.34       7.86 f
+  U1035/Y (NOR3X1)                         0.36       8.22 r
+  U1037/Y (AOI211X4)                       0.37       8.58 f
+  U1039/Y (OAI21X1)                        0.67       9.25 r
+  U745/Y (INVX1)                           0.40       9.65 f
+  U1052/Y (OAI22XL)                        0.44      10.09 r
+  order_reg[3][0]/D (DFFRX1)               0.00      10.09 r
+  data arrival time                                  10.09
+
+  clock clk (rise edge)                   10.00      10.00
+  clock network delay (ideal)              0.50      10.50
+  clock uncertainty                       -0.10      10.40
+  order_reg[3][0]/CK (DFFRX1)              0.00      10.40 r
+  library setup time                      -0.30      10.10
+  data required time                                 10.10
+  -----------------------------------------------------------
+  data required time                                 10.10
+  data arrival time                                 -10.09
+  -----------------------------------------------------------
+  slack (MET)                                         0.01
+
+
+1
