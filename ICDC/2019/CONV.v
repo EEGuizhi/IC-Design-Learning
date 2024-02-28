@@ -125,7 +125,7 @@ module CONV (
                 RELU:
                     csel <= 3'b001;
                 POOL: begin
-                    if(done)
+                    if(count == 0)
                         csel <= 3'b011;  // saving after pooling
                     else
                         csel <= 3'b001;  // reading orig fmap
@@ -149,7 +149,7 @@ module CONV (
                 RELU:
                     cwr <= true;
                 POOL: begin
-                    if(done)
+                    if(csel == 3'b011)
                         cwr <= true;
                     else
                         cwr <= false;
@@ -175,7 +175,7 @@ module CONV (
                         crd <= true;
                 end
                 POOL: begin
-                    if(!done)
+                    if(done || count != 0)
                         crd <= true;
                     else
                         crd <= false;
@@ -185,7 +185,7 @@ module CONV (
             endcase
         end
     end
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk or posedge reset) begin  // read coord control
         if(reset) begin
             rd_row <= 0;
             rd_col <= 0;
@@ -220,7 +220,7 @@ module CONV (
             endcase
         end
     end
-    always @(posedge clk or posedge reset) begin  // write data
+    always @(posedge clk or posedge reset) begin  // write coord control
         if(reset) begin
             wr_row <= 0;
             wr_col <= 0;
@@ -240,7 +240,7 @@ module CONV (
             endcase
         end
     end
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk or posedge reset) begin  // data to be saved
         if(reset)
             cdata_wr <= 0;
         else begin
@@ -254,7 +254,7 @@ module CONV (
                         cdata_wr <= cdata_rd;
                 end
                 POOL: begin  // pooling
-                    if(done)
+                    if(csel == 3'b011)
                         cdata_wr <= 0;
                     else if(cdata_rd > cdata_wr)
                         cdata_wr <= cdata_rd;
@@ -417,12 +417,16 @@ module CONV (
     // "busy" signal control
     always @(posedge clk or posedge reset) begin
         if(reset)
-            busy <= true;
+            busy <= false;
         else begin
             case (cs)
                 CONV:
                     busy <= true;
-                OUTPUT:
+                RELU:
+                    busy <= true;
+                POOL:
+                    busy <= true;
+                default:
                     busy <= false;
             endcase
         end
@@ -460,7 +464,10 @@ module CONV (
                         done <= false;
                 end
                 POOL: begin
-                    
+                    if(csel == 3'b011)
+                        done <= true;
+                    else
+                        done <= false;
                 end
                 default:
                     done <= false;
