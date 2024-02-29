@@ -255,7 +255,7 @@ module CONV (
                         cdata_wr <= 0;
                 end
                 POOL: begin  // pooling
-                    if(cwr)
+                    if(cwr || idx == 1)
                         cdata_wr <= 0;
                     else if(cdata_rd > cdata_wr)
                         cdata_wr <= cdata_rd;
@@ -315,7 +315,6 @@ module CONV (
             endcase
         end
     end
-
     always @(posedge clk or posedge reset) begin  // tmp save multiplied num
         if(reset)
             part_sum <= 0;
@@ -343,6 +342,10 @@ module CONV (
                         idx <= 0;
                     else
                         idx <= idx + 1;
+                end
+                RELU: begin
+                    if(ns == POOL)
+                        idx <= 1;
                 end
                 POOL: begin
                     if(idx == 5)
