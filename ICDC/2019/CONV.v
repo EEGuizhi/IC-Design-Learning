@@ -48,27 +48,21 @@ module CONV (
     reg [5:0] rd_row, rd_col;
 
     // Convolution
-    reg [11:0] next_addr;
     reg signed [19:0] weight;
     reg signed [39:0] part_sum;
-    wire signed [39:0] mult_ans;
-
-    reg should_add;
+    // reg signed [39:0] mult_ans;
     wire top, bottom, left, right;
 
     // Others
     reg [3:0] idx;
-    reg [1:0] count;
     reg done, rounding;
     wire last_mult;
 
     // Wires assignation
-    assign caddr_wr = (cs != POOL) ? {wr_row, wr_col} : {wr_row[4:0], wr_col[4:0]};
-    assign caddr_rd = {rd_row << 6, rd_col};
+    assign caddr_wr = (cs != POOL) ? {wr_row, wr_col} : {2'b00, wr_row[4:0], wr_col[4:0]};
+    assign caddr_rd = {rd_row, rd_col};
 
-    assign mult_ans = idata * weight;
-    assign last_mult = (idx == 8) ? true : false;
-
+    assign last_mult = (idx == 9) ? true : false;
     assign top = (wr_row == 0) ? true : false;
     assign bottom = (wr_row == 63) ? true : false;
     assign left = (wr_col == 0) ? true : false;
@@ -82,7 +76,7 @@ module CONV (
         else
             cs <= ns;
     end
-    always @(posedge clk or posedge reset) begin
+    always @(*) begin
         case (cs)
             IDLE: begin
                 if(ready)
@@ -103,7 +97,7 @@ module CONV (
                     ns = RELU;
             end
             POOL: begin
-                if(caddr_rd == 4095 && done)
+                if(caddr_wr == 1023 && idx == 0)
                     ns = OUTPUT;
                 else
                     ns = POOL;
@@ -125,7 +119,7 @@ module CONV (
                 RELU:
                     csel <= 3'b001;
                 POOL: begin
-                    if(count == 0)
+                    if(idx == 5)
                         csel <= 3'b011;  // saving after pooling
                     else
                         csel <= 3'b001;  // reading orig fmap
@@ -141,15 +135,19 @@ module CONV (
         else begin
             case (cs)
                 CONV: begin
-                    if(last_mult)
+                    if(rounding)
                         cwr <= true;
                     else
                         cwr <= false;
                 end
-                RELU:
-                    cwr <= true;
+                RELU: begin
+                    if(ns == POOL)
+                        cwr <= false;
+                    else
+                        cwr <= true;
+                end
                 POOL: begin
-                    if(csel == 3'b011)
+                    if(idx == 5)
                         cwr <= true;
                     else
                         cwr <= false;
@@ -175,7 +173,7 @@ module CONV (
                         crd <= true;
                 end
                 POOL: begin
-                    if(done || count != 0)
+                    if(idx == 1 || idx == 2 || idx == 3 || idx == 4)
                         crd <= true;
                     else
                         crd <= false;
@@ -194,22 +192,22 @@ module CONV (
                 RELU:
                     {rd_row, rd_col} <= {rd_row, rd_col} + 1;
                 POOL: begin
-                    case (count)
-                        0: begin
-                            rd_row <= wr_row << 2;
-                            rd_col <= wr_col << 1;
-                        end
+                    case (idx)
                         1: begin
-                            rd_row <= wr_row << 2;
-                            rd_col <= wr_col << 1 + 1;
+                            rd_row <= wr_row << 1;
+                            rd_col <= wr_col << 1;
                         end
                         2: begin
-                            rd_row <= wr_row << 2 + 1;
-                            rd_col <= wr_col << 1;
+                            rd_row <= wr_row << 1;
+                            rd_col <= {wr_col[4:0], 1'b1};  // same as "(wr_col << 1) + 1"
                         end
                         3: begin
-                            rd_row <= wr_row << 2 + 1;
-                            rd_col <= wr_col << 1 + 1;
+                            rd_row <= {wr_row[4:0], 1'b1};
+                            rd_col <= wr_col << 1;
+                        end
+                        4: begin
+                            rd_row <= {wr_row[4:0], 1'b1};
+                            rd_col <= {wr_col[4:0], 1'b1};
                         end
                     endcase
                 end
@@ -235,7 +233,8 @@ module CONV (
                     wr_col <= rd_col;
                 end
                 POOL: begin
-                    {wr_row[4:0], wr_col[4:0]} <= {wr_row[4:0], wr_col[4:0]} + 1;
+                    if(idx == 0)
+                        {wr_row[4:0], wr_col[4:0]} <= {wr_row[4:0], wr_col[4:0]} + 1;
                 end
             endcase
         end
@@ -247,14 +246,16 @@ module CONV (
             case (cs)
                 CONV: begin  // rounding
                     if(rounding)
-                        cdata_wr <= (part_sum[15] == 1) ? part_sum[35:16] + 1 : part_sum[35:16];
+                        cdata_wr <= (part_sum[15] == 1) ? part_sum[35:16] + bias + 1 : part_sum[35:16] + bias;
                 end
                 RELU: begin  // ReLU operation
                     if(cdata_rd > 0)
                         cdata_wr <= cdata_rd;
+                    else
+                        cdata_wr <= 0;
                 end
                 POOL: begin  // pooling
-                    if(csel == 3'b011)
+                    if(cwr)
                         cdata_wr <= 0;
                     else if(cdata_rd > cdata_wr)
                         cdata_wr <= cdata_rd;
@@ -267,32 +268,29 @@ module CONV (
 
 
     // Convolution
-    always @(*) begin  // kernel weights
-        case (idx)
-            0: weight = w_11;
-            1: weight = w_12;
-            2: weight = w_13;
-            3: weight = w_21;
-            4: weight = w_22;
-            5: weight = w_23;
-            6: weight = w_31;
-            7: weight = w_32;
-            8: weight = w_33;
-            default: weight = 0;
-        endcase
-    end
-    always @(*) begin  // next image data
-        case (idx)
-            0: next_addr = caddr_wr - 1024;
-            1: next_addr = caddr_wr - 1023;
-            2: next_addr = caddr_wr - 1;
-            3: next_addr = caddr_wr;
-            4: next_addr = caddr_wr + 1;
-            5: next_addr = caddr_wr + 1023;
-            6: next_addr = caddr_wr + 1024;
-            7: next_addr = caddr_wr + 1025;
-            default: next_addr = caddr_wr - 1025;
-        endcase
+    always @(posedge clk or posedge reset) begin  // kernel weights
+        if(reset)
+            weight <= 0;
+        else begin
+            case (cs)
+                CONV: begin
+                    case (idx)
+                        0: weight <= (!top && !left)     ? w_11 : 0;
+                        1: weight <= (!top)              ? w_12 : 0;
+                        2: weight <= (!top && !right)    ? w_13 : 0;
+                        3: weight <= (!left)             ? w_21 : 0;
+                        4: weight <=                       w_22;
+                        5: weight <= (!right)            ? w_23 : 0;
+                        6: weight <= (!bottom && !left)  ? w_31 : 0;
+                        7: weight <= (!bottom)           ? w_32 : 0;
+                        8: weight <= (!bottom && !right) ? w_33 : 0;
+                        default: weight <= 0;
+                    endcase
+                end
+                default:
+                    weight <= 0;
+            endcase
+        end
     end
     always @(posedge clk or posedge reset) begin  // get image data
         if(reset) begin
@@ -300,67 +298,24 @@ module CONV (
         end else begin
             case (cs)
                 CONV: begin
-                    if(!done && !last_mult)
-                        iaddr <= next_addr;
+                    case (idx)
+                        0: if(!top && !left)     iaddr <= {wr_row - 6'd1, wr_col - 6'd1};
+                        1: if(!top)              iaddr <= {wr_row - 6'd1, wr_col};
+                        2: if(!top && !right)    iaddr <= {wr_row - 6'd1, wr_col + 6'd1};
+                        3: if(!left)             iaddr <= {wr_row, wr_col - 6'd1};
+                        4: /* center */          iaddr <= {wr_row, wr_col};
+                        5: if(!right)            iaddr <= {wr_row, wr_col + 6'd1};
+                        6: if(!bottom && !left)  iaddr <= {wr_row + 6'd1, wr_col - 6'd1};
+                        7: if(!bottom)           iaddr <= {wr_row + 6'd1, wr_col};
+                        8: if(!bottom && !right) iaddr <= {wr_row + 6'd1, wr_col + 6'd1};
+                    endcase
                 end
+                default:
+                    iaddr <= 0;
             endcase
         end
     end
 
-    always @(*) begin  // if this idx should add to sum
-        case ({top, bottom, left, right})
-            4'b1000: begin  // top
-                if(idx == 0 || idx == 1 || idx == 2)
-                    should_add = false;
-                else
-                    should_add = true;
-            end
-            4'b0100: begin  // bottom
-                if(idx == 6 || idx == 7 || idx == 8)
-                    should_add = false;
-                else
-                    should_add = true;
-            end
-            4'b0010: begin  // left
-                if(idx == 0 || idx == 3 || idx == 6)
-                    should_add = false;
-                else
-                    should_add = true;
-            end
-            4'b0001: begin  // right
-                if(idx == 2 || idx == 5 || idx == 8)
-                    should_add = false;
-                else
-                    should_add = true;
-            end
-            4'b1010: begin  // top left
-                if(idx == 4 || idx == 5 || idx == 7 || idx == 8)
-                    should_add = true;
-                else
-                    should_add = false;
-            end
-            4'b1001: begin  // top right
-                if(idx == 3 || idx == 4 || idx == 6 || idx == 7)
-                    should_add = true;
-                else
-                    should_add = false;
-            end
-            4'b0110: begin  // bottom left
-                if(idx == 4 || idx == 5 || idx == 7 || idx == 8)
-                    should_add = true;
-                else
-                    should_add = false;
-            end
-            4'b0101: begin  // bottom right
-                if(idx == 3 || idx == 4 || idx == 6 || idx == 7)
-                    should_add = true;
-                else
-                    should_add = false;
-            end
-            default:
-                should_add = true;
-        endcase
-    end
     always @(posedge clk or posedge reset) begin  // tmp save multiplied num
         if(reset)
             part_sum <= 0;
@@ -369,27 +324,9 @@ module CONV (
                 CONV: begin
                     if(done)
                         part_sum <= 0;
-                    else if(should_add)
-                        part_sum <= part_sum + mult_ans;
+                    else if(!rounding)
+                        part_sum <= part_sum + (idata * weight);
                 end
-            endcase
-        end
-    end
-
-    // Pooling
-    always @(posedge clk or posedge reset) begin
-        if(reset)
-            count <= 0;
-        else begin
-            case (cs)
-                POOL: begin
-                    if(count == 0 && csel == 3'b001)
-                        count <= count;
-                    else
-                        count <= count + 1;
-                end
-                default:
-                    count <= 0;
             endcase
         end
     end
@@ -407,6 +344,12 @@ module CONV (
                     else
                         idx <= idx + 1;
                 end
+                POOL: begin
+                    if(idx == 5)
+                        idx <= 0;
+                    else
+                        idx <= idx + 1;
+                end
                 default:
                     idx <= 0;
             endcase
@@ -420,13 +363,13 @@ module CONV (
             busy <= false;
         else begin
             case (cs)
-                CONV:
-                    busy <= true;
-                RELU:
-                    busy <= true;
-                POOL:
-                    busy <= true;
-                default:
+                IDLE: begin
+                    if(ready)
+                        busy <= true;
+                    else
+                        busy <= false;
+                end
+                OUTPUT:
                     busy <= false;
             endcase
         end
@@ -459,12 +402,6 @@ module CONV (
             case (cs)
                 CONV: begin
                     if(rounding)
-                        done <= true;
-                    else
-                        done <= false;
-                end
-                POOL: begin
-                    if(csel == 3'b011)
                         done <= true;
                     else
                         done <= false;
