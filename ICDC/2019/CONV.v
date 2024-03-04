@@ -3,21 +3,21 @@ module CONV (
     input clk,
     input reset,
 
-    input ready,
+    input      ready,
     output reg busy,
 
     input signed [19:0] idata,
-    output reg [11:0] iaddr,
+    output reg   [11:0] iaddr,
 
-    output reg cwr,
-    output reg crd,
+    output reg       cwr,
+    output reg       crd,
     output reg [2:0] csel,
 
-    output [11:0] caddr_wr,
-    output [11:0] caddr_rd,
+    output     [11:0] caddr_wr,
+    output     [11:0] caddr_rd,
 
-    input signed [19:0] cdata_rd,
-    output reg signed [19:0] cdata_wr
+    input      [19:0] cdata_rd,
+    output reg [19:0] cdata_wr
 );
 
     // parameter true = 1;
@@ -30,7 +30,7 @@ module CONV (
     parameter POOL = 3;
     parameter OUTPUT = 4;
 
-    // kernel weights & bias
+    // Kernel weights & bias settings
     parameter w_11 = 20'h0A89E;
     parameter w_12 = 20'h092D5;
     parameter w_13 = 20'h06D43;
@@ -43,48 +43,92 @@ module CONV (
     parameter bias = 20'h01310;
 
     // Outputs comb
-    reg nxt_busy;
-    reg [11:0] nxt_iaddr;
-    reg nxt_cwr, nxt_crd;
-    reg [2:0] nxt_csel;
-    reg signed [19:0] nxt_cdata_wr;
+    reg busy_nxt;
+    reg [11:0] iaddr_nxt;
+    reg cwr_nxt, crd_nxt;
+    reg [2:0] csel_nxt;
+    reg signed [19:0] cdata_wr_nxt;
 
     // State
     reg [2:0] cs, ns;
 
     // Coords
-    reg [5:0] wr_row, wr_col, nxt_wr_row, nxt_wr_col;
-    reg [5:0] rd_row, rd_col, nxt_rd_row, nxt_rd_col;
+    reg [5:0] wr_row, wr_col, wr_row_nxt, wr_col_nxt;
+    reg [5:0] rd_row, rd_col, rd_row_nxt, rd_col_nxt;
 
     // Convolution
-    reg signed [19:0] weight, nxt_weight;
-    reg signed [39:0] part_sum, nxt_part_sum;
-    wire top, bottom, left, right;
+    reg signed [19:0] weight, weight_nxt;
+    reg signed [19:0] FIFO, FIFO_nxt;
+    reg signed [39:0] mult, mult_nxt;
+    reg signed [39:0] part_sum, part_sum_nxt;
+    wire top, bottom, left, right, rounding;
 
     // Others
-    reg [3:0] idx, nxt_idx;
-    reg done, nxt_done;
-    reg rounding, nxt_rounding;
-    wire last_mult;
+    reg [3:0] idx, idx_nxt;
+    reg done, done_nxt;
+
 
     // Wires assignation
     assign caddr_wr = (cs != POOL) ? {wr_row, wr_col} : {2'b00, wr_row[4:0], wr_col[4:0]};
     assign caddr_rd = {rd_row, rd_col};
 
-    assign last_mult = (idx == 9) ? 1 : 0;
-    assign top = (wr_row == 0) ? 1 : 0;
+    assign top = (wr_row == 0) ? 1 : 0;  // window on the top (CONV state)
     assign bottom = (wr_row == 63) ? 1 : 0;
     assign left = (wr_col == 0) ? 1 : 0;
     assign right = (wr_col == 63) ? 1 : 0;
 
+    assign rounding = (idx == 12) ? 1 : 0;  // round the sum (CONV state)
+
+
+    // Sequential
+    always @(posedge clk or posedge reset) begin
+        if(reset) begin
+            cs <= IDLE;
+            csel <= 0;
+            cwr <= 0;
+            crd <= 0;
+
+            rd_row <= 0;
+            rd_col <= 0;
+            wr_row <= 0;
+            wr_col <= 0;
+
+            cdata_wr <= 0;
+            weight <= 0;
+            iaddr <= 0;
+            FIFO <= 0;
+            mult <= 0;
+            part_sum <= 0;
+
+            idx <= 0;
+            busy <= 0;
+            done <= 0;
+        end else begin
+            cs <= ns;
+            csel <= csel_nxt;
+            cwr <= cwr_nxt;
+            crd <= crd_nxt;
+
+            rd_row <= rd_row_nxt;
+            rd_col <= rd_col_nxt;
+            wr_row <= wr_row_nxt;
+            wr_col <= wr_col_nxt;
+
+            cdata_wr <= cdata_wr_nxt;
+            weight <= weight_nxt;
+            iaddr <= iaddr_nxt;
+            FIFO <= FIFO_nxt;
+            mult <= mult_nxt;
+            part_sum <= part_sum_nxt;
+
+            idx <= idx_nxt;
+            busy <= busy_nxt;
+            done <= done_nxt;
+        end
+    end
+
 
     // FSM
-    always @(posedge clk or posedge reset) begin
-        if(reset)
-            cs <= IDLE;
-        else
-            cs <= ns;
-    end
     always @(*) begin
         case (cs)
             IDLE: begin
@@ -118,385 +162,293 @@ module CONV (
 
 
     // Memory control
-    always @(posedge clk or posedge reset) begin  // MEM select
-        if(reset)
-            csel <= 0;
-        else
-            csel <= nxt_csel;
-    end
-    always @(*) begin
+    always @(*) begin  // MEM select
         case (cs)
             CONV:
-                nxt_csel = 3'b001;
+                csel_nxt = 3'b001;
             RELU:
-                nxt_csel = 3'b001;
+                csel_nxt = 3'b001;
             POOL: begin
                 if(idx == 5)
-                    nxt_csel = 3'b011;  // saving after pooling
+                    csel_nxt = 3'b011;  // saving after pooling
                 else
-                    nxt_csel = 3'b001;  // reading orig fmap
+                    csel_nxt = 3'b001;  // reading orig fmap
             end
             default:
-                nxt_csel = 0;
+                csel_nxt = 0;
         endcase
     end
-
-    always @(posedge clk or posedge reset) begin  // write-out
-        if(reset)
-            cwr <= 0;
-        else
-            cwr <= nxt_cwr;
-    end
-    always @(*) begin
+    always @(*) begin  // write-out
         case (cs)
             CONV: begin
                 if(rounding)
-                    nxt_cwr = 1;
+                    cwr_nxt = 1;
                 else
-                    nxt_cwr = 0;
+                    cwr_nxt = 0;
             end
             RELU: begin
                 if(ns == POOL)
-                    nxt_cwr = 0;
+                    cwr_nxt = 0;
                 else
-                    nxt_cwr = 1;
+                    cwr_nxt = 1;
             end
             POOL: begin
                 if(idx == 5)
-                    nxt_cwr = 1;
+                    cwr_nxt = 1;
                 else
-                    nxt_cwr = 0;
+                    cwr_nxt = 0;
             end
             default:
-                nxt_cwr = 0;
+                cwr_nxt = 0;
         endcase
     end
-
-    always @(posedge clk or posedge reset) begin  // read-in
-        if(reset)
-            crd <= 0;
-        else
-            crd <= nxt_crd;
-    end
-    always @(*) begin
+    always @(*) begin  // read-in
         case (cs)
             CONV: begin
                 if(ns == RELU)
-                    nxt_crd = 1;
+                    crd_nxt = 1;
                 else
-                    nxt_crd = crd;
+                    crd_nxt = crd;
             end
             RELU: begin
                 if(caddr_rd == 4095)
-                    nxt_crd = 0;
+                    crd_nxt = 0;
                 else
-                    nxt_crd = 1;
+                    crd_nxt = 1;
             end
             POOL: begin
                 if(idx == 1 || idx == 2 || idx == 3 || idx == 4)
-                    nxt_crd = 1;
+                    crd_nxt = 1;
                 else
-                    nxt_crd = 0;
+                    crd_nxt = 0;
             end
             default:
-                nxt_crd = 0;
+                crd_nxt = 0;
         endcase
     end
 
-    always @(posedge clk or posedge reset) begin  // read coord control
-        if(reset) begin
-            rd_row <= 0;
-            rd_col <= 0;
-        end else begin
-            rd_row <= nxt_rd_row;
-            rd_col <= nxt_rd_col;
-        end
-    end
-    always @(*) begin
+    always @(*) begin  // data reading's coord control
         case (cs)
             RELU:
-                {nxt_rd_row, nxt_rd_col} = {rd_row, rd_col} + 1;
+                {rd_row_nxt, rd_col_nxt} = {rd_row, rd_col} + 1;
             POOL: begin
                 case (idx)
                     1: begin
-                        nxt_rd_row = wr_row << 1;
-                        nxt_rd_col = wr_col << 1;
+                        rd_row_nxt = wr_row << 1;
+                        rd_col_nxt = wr_col << 1;
                     end
                     2: begin
-                        nxt_rd_row = wr_row << 1;
-                        nxt_rd_col = {wr_col[4:0], 1'b1};  // same as "(wr_col << 1) + 1"
+                        rd_row_nxt = wr_row << 1;
+                        rd_col_nxt = {wr_col[4:0], 1'b1};  // same as "(wr_col << 1) + 1"
                     end
                     3: begin
-                        nxt_rd_row = {wr_row[4:0], 1'b1};
-                        nxt_rd_col = wr_col << 1;
+                        rd_row_nxt = {wr_row[4:0], 1'b1};
+                        rd_col_nxt = wr_col << 1;
                     end
                     4: begin
-                        nxt_rd_row = {wr_row[4:0], 1'b1};
-                        nxt_rd_col = {wr_col[4:0], 1'b1};
+                        rd_row_nxt = {wr_row[4:0], 1'b1};
+                        rd_col_nxt = {wr_col[4:0], 1'b1};
                     end
                     default: begin
-                        nxt_rd_row = rd_row;
-                        nxt_rd_col = rd_col;
+                        rd_row_nxt = rd_row;
+                        rd_col_nxt = rd_col;
                     end
                 endcase
             end
             OUTPUT: begin
-                nxt_rd_row = 0;
-                nxt_rd_col = 0;
+                rd_row_nxt = 0;
+                rd_col_nxt = 0;
             end
             default: begin
-                nxt_rd_row = rd_row;
-                nxt_rd_col = rd_col;
+                rd_row_nxt = rd_row;
+                rd_col_nxt = rd_col;
             end
         endcase
     end
-
-    always @(posedge clk or posedge reset) begin  // write coord control
-        if(reset) begin
-            wr_row <= 0;
-            wr_col <= 0;
-        end else begin
-            wr_row <= nxt_wr_row;
-            wr_col <= nxt_wr_col;
-        end
-    end
-    always @(*) begin
+    always @(*) begin  // data writing's coord control
         case (cs)
             CONV: begin
                 if(done)
-                    {nxt_wr_row, nxt_wr_col} = {wr_row, wr_col} + 1;
+                    {wr_row_nxt, wr_col_nxt} = {wr_row, wr_col} + 1;
                 else
-                    {nxt_wr_row, nxt_wr_col} = {wr_row, wr_col};
+                    {wr_row_nxt, wr_col_nxt} = {wr_row, wr_col};
             end
             RELU: begin
-                nxt_wr_row = rd_row;
-                nxt_wr_col = rd_col;
+                wr_row_nxt = rd_row;
+                wr_col_nxt = rd_col;
             end
             POOL: begin
                 if(idx == 0)
-                    {nxt_wr_row[4:0], nxt_wr_col[4:0]} = {wr_row[4:0], wr_col[4:0]} + 1;
+                    {wr_row_nxt[4:0], wr_col_nxt[4:0]} = {wr_row[4:0], wr_col[4:0]} + 1;
                 else
-                    {nxt_wr_row, nxt_wr_col} = {wr_row, wr_col};
+                    {wr_row_nxt, wr_col_nxt} = {wr_row, wr_col};
             end
             default: begin
-                nxt_wr_row = rd_row;
-                nxt_wr_col = rd_col;
+                wr_row_nxt = rd_row;
+                wr_col_nxt = rd_col;
             end
         endcase
     end
 
-    always @(posedge clk or posedge reset) begin  // data to be saved
-        if(reset)
-            cdata_wr <= 0;
-        else
-            cdata_wr <= nxt_cdata_wr;
-    end
-    always @(*) begin
+    always @(*) begin  // data to be saved
         case (cs)
             CONV: begin  // rounding
                 if(rounding) begin
                     if(part_sum[15])
-                        nxt_cdata_wr = part_sum[35:16] + (bias + 1);
+                        cdata_wr_nxt = part_sum[35:16] + (bias + 1);
                     else
-                        nxt_cdata_wr = part_sum[35:16] + bias;
+                        cdata_wr_nxt = part_sum[35:16] + bias;
                 end else
-                    nxt_cdata_wr = cdata_wr;
+                    cdata_wr_nxt = cdata_wr;
             end
             RELU: begin  // ReLU operation
-                if(cdata_rd > 0)
-                    nxt_cdata_wr = cdata_rd;
+                if(cdata_rd[19] == 0)  // positive
+                    cdata_wr_nxt = cdata_rd;
                 else
-                    nxt_cdata_wr = 0;
+                    cdata_wr_nxt = 0;
             end
             POOL: begin  // pooling
-                if(cwr || idx == 1)
-                    nxt_cdata_wr = 0;
+                if(idx == 0 || idx == 1)
+                    cdata_wr_nxt = 0;
                 else if(cdata_rd > cdata_wr)
-                    nxt_cdata_wr = cdata_rd;
+                    cdata_wr_nxt = cdata_rd;
                 else
-                    nxt_cdata_wr = cdata_wr;
+                    cdata_wr_nxt = cdata_wr;
             end
             OUTPUT:
-                nxt_cdata_wr = 0;
+                cdata_wr_nxt = 0;
             default:
-                nxt_cdata_wr = cdata_wr;
+                cdata_wr_nxt = cdata_wr;
         endcase
     end
 
 
     // Convolution
-    always @(posedge clk or posedge reset) begin  // kernel weights
-        if(reset)
-            weight <= 0;
-        else
-            weight <= nxt_weight;
-    end
-    always @(*) begin
+    always @(*) begin  // kernel weights
         case (cs)
             CONV: begin
                 case (idx)
-                    0: nxt_weight = (!top && !left)     ? w_11 : 0;
-                    1: nxt_weight = (!top)              ? w_12 : 0;
-                    2: nxt_weight = (!top && !right)    ? w_13 : 0;
-                    3: nxt_weight = (!left)             ? w_21 : 0;
-                    4: nxt_weight =                       w_22;
-                    5: nxt_weight = (!right)            ? w_23 : 0;
-                    6: nxt_weight = (!bottom && !left)  ? w_31 : 0;
-                    7: nxt_weight = (!bottom)           ? w_32 : 0;
-                    8: nxt_weight = (!bottom && !right) ? w_33 : 0;
-                    default: nxt_weight = 0;
+                    1: weight_nxt = (!top && !left)     ? w_11 : 0;
+                    2: weight_nxt = (!top)              ? w_12 : 0;
+                    3: weight_nxt = (!top && !right)    ? w_13 : 0;
+                    4: weight_nxt = (!left)             ? w_21 : 0;
+                    5: weight_nxt =                       w_22;
+                    6: weight_nxt = (!right)            ? w_23 : 0;
+                    7: weight_nxt = (!bottom && !left)  ? w_31 : 0;
+                    8: weight_nxt = (!bottom)           ? w_32 : 0;
+                    9: weight_nxt = (!bottom && !right) ? w_33 : 0;
+                    default: weight_nxt = 0;
                 endcase
             end
             default:
-                nxt_weight = 0;
+                weight_nxt = 0;
         endcase
     end
-
-    always @(posedge clk or posedge reset) begin  // get image data
-        if(reset)
-            iaddr <= 0;
-        else
-            iaddr <= nxt_iaddr;
-    end
-    always @(*) begin
+    always @(*) begin  // get image data
         case (cs)
             CONV: begin
                 case (idx)
-                    0: nxt_iaddr = (!top && !left)     ? {wr_row - 6'd1, wr_col - 6'd1} : iaddr;
-                    1: nxt_iaddr = (!top)              ? {wr_row - 6'd1, wr_col} : iaddr;
-                    2: nxt_iaddr = (!top && !right)    ? {wr_row - 6'd1, wr_col + 6'd1} : iaddr;
-                    3: nxt_iaddr = (!left)             ? {wr_row, wr_col - 6'd1} : iaddr;
-                    4: nxt_iaddr = /* center */          {wr_row, wr_col};
-                    5: nxt_iaddr = (!right)            ? {wr_row, wr_col + 6'd1} : iaddr;
-                    6: nxt_iaddr = (!bottom && !left)  ? {wr_row + 6'd1, wr_col - 6'd1} : iaddr;
-                    7: nxt_iaddr = (!bottom)           ? {wr_row + 6'd1, wr_col} : iaddr;
-                    8: nxt_iaddr = (!bottom && !right) ? {wr_row + 6'd1, wr_col + 6'd1} : iaddr;
-                    default: nxt_iaddr = iaddr;
+                    0: iaddr_nxt = (!top && !left)     ? {wr_row - 6'd1, wr_col - 6'd1} : iaddr;
+                    1: iaddr_nxt = (!top)              ? {wr_row - 6'd1, wr_col} : iaddr;
+                    2: iaddr_nxt = (!top && !right)    ? {wr_row - 6'd1, wr_col + 6'd1} : iaddr;
+                    3: iaddr_nxt = (!left)             ? {wr_row, wr_col - 6'd1} : iaddr;
+                    4: iaddr_nxt = /*center*/            {wr_row, wr_col};
+                    5: iaddr_nxt = (!right)            ? {wr_row, wr_col + 6'd1} : iaddr;
+                    6: iaddr_nxt = (!bottom && !left)  ? {wr_row + 6'd1, wr_col - 6'd1} : iaddr;
+                    7: iaddr_nxt = (!bottom)           ? {wr_row + 6'd1, wr_col} : iaddr;
+                    8: iaddr_nxt = (!bottom && !right) ? {wr_row + 6'd1, wr_col + 6'd1} : iaddr;
+                    default: iaddr_nxt = iaddr;
                 endcase
             end
             default:
-                nxt_iaddr = 0;
+                iaddr_nxt = 0;
         endcase
     end
-
-    always @(posedge clk or posedge reset) begin  // tmp save multiplied num
-        if(reset)
-            part_sum <= 0;
-        else
-            part_sum <= nxt_part_sum;
+    always @(*) begin  // multiplier
+        case (cs)
+            CONV:
+                mult_nxt = FIFO * weight;
+            default:
+                mult_nxt = 0;
+        endcase
     end
     always @(*) begin
+        case (cs)
+            CONV:
+                FIFO_nxt = idata;
+            default:
+                FIFO_nxt = 0;
+        endcase
+    end
+    always @(*) begin  // tmp save multiplied num
         case (cs)
             CONV: begin
                 if(done)
-                    nxt_part_sum = 0;
+                    part_sum_nxt = 0;
                 else if(!rounding)
-                    nxt_part_sum = part_sum + (idata * weight);
+                    part_sum_nxt = mult + part_sum;  // mult-add
                 else
-                    nxt_part_sum = part_sum;
+                    part_sum_nxt = part_sum;
             end
             default:
-                nxt_part_sum = 0;
+                part_sum_nxt = 0;
         endcase
     end
 
 
     // index control
-    always @(posedge clk or posedge reset) begin
-        if(reset)
-            idx <= 0;
-        else
-            idx <= nxt_idx;
-    end
     always @(*) begin
         case (cs)
             CONV: begin
                 if(done)
-                    nxt_idx = 0;
+                    idx_nxt = 0;
                 else
-                    nxt_idx = idx + 1;
+                    idx_nxt = idx + 1;
             end
             RELU: begin
                 if(ns == POOL)
-                    nxt_idx = 1;
+                    idx_nxt = 1;
                 else
-                    nxt_idx = idx;
+                    idx_nxt = idx;
             end
             POOL: begin
                 if(idx == 5)
-                    nxt_idx = 0;
+                    idx_nxt = 0;
                 else
-                    nxt_idx = idx + 1;
+                    idx_nxt = idx + 1;
             end
             default:
-                nxt_idx = 0;
+                idx_nxt = 0;
         endcase
     end
 
-
     // "busy" signal control
-    always @(posedge clk or posedge reset) begin
-        if(reset)
-            busy <= 0;
-        else
-            busy <= nxt_busy;
-    end
     always @(*) begin
         case (cs)
             IDLE: begin
                 if(ready)
-                    nxt_busy = 1;
+                    busy_nxt = 1;
                 else
-                    nxt_busy = 0;
+                    busy_nxt = 0;
             end
             OUTPUT:
-                nxt_busy = 0;
+                busy_nxt = 0;
             default:
-                nxt_busy = busy;
-        endcase
-    end
-
-
-    // "rounding" signal control
-    always @(posedge clk or posedge reset) begin
-        if(reset)
-            rounding <= 0;
-        else
-            rounding <= nxt_rounding;
-    end
-    always @(*) begin
-        case (cs)
-            CONV: begin
-                // finish 9 mult-sum, do rounding
-                if(rounding)
-                    nxt_rounding = 0;
-                else if(last_mult)
-                    nxt_rounding = 1;
-                else
-                    nxt_rounding = rounding;
-            end
-            default:
-                nxt_rounding = 0;
+                busy_nxt = busy;
         endcase
     end
 
     // "done" signal control
-    always @(posedge clk or posedge reset) begin
-        if(reset)
-            done <= 0;
-        else
-            done <= nxt_done;
-    end
     always @(*) begin
         case (cs)
             CONV: begin
                 if(rounding)
-                    nxt_done = 1;
+                    done_nxt = 1;
                 else
-                    nxt_done = 0;
+                    done_nxt = 0;
             end
             default:
-                nxt_done = 0;
+                done_nxt = 0;
         endcase
     end
 
